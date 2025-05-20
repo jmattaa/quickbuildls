@@ -1,4 +1,4 @@
-package rpc
+package lsp
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 )
+
+const QUICKBUILDLS_VERSION = "0.0.1"
 
 type LspMessage struct {
 	JSONRPC string `json:"jsonrpc"`
@@ -23,21 +25,21 @@ func Encode(msg any) (string, error) {
 	return fmt.Sprintf("Content-Length: %d\r\n\r\n%s", len(c), c), nil
 }
 
-func Decode(msg string) (LspMessage, error) {
+func Decode(msg []byte) ([]byte, LspMessage, error) {
 	header, content, found := bytes.Cut([]byte(msg), []byte("\r\n\r\n"))
 	if !found {
-		return LspMessage{}, fmt.Errorf("Couldn't parse message, missing header")
+		return []byte(""), LspMessage{}, fmt.Errorf("Couldn't parse message, missing header")
 	}
 
 	contentLenBytes := header[len("Content-Length: "):]
 	contentlen, err := strconv.Atoi(string(contentLenBytes))
 	if err != nil {
-		return LspMessage{}, err
+		return []byte(""), LspMessage{}, err
 	}
 
 	var r LspMessage
 	err = json.Unmarshal(content[:contentlen], &r)
-	return r, err
+	return content[:contentlen], r, err
 }
 
 func Split(data []byte, _ bool) (advance int, token []byte, err error) {
@@ -57,5 +59,5 @@ func Split(data []byte, _ bool) (advance int, token []byte, err error) {
 	}
 
 	totallen := len(header) + len("\r\n\r\n") + contentlen
-	return  totallen, data[:totallen], nil
+	return totallen, data[:totallen], nil
 }
