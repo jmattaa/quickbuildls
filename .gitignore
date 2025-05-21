@@ -1,3 +1,2 @@
-
-
-quickbuildls.log
+zig-out
+.zig-cache
