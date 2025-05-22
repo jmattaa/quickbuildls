@@ -1,8 +1,7 @@
 const std = @import("std");
-const lsp = @import("lsp/lsp.zig");
-const Logger = @import("logger.zig").Logger;
 
-const Test = struct { jsonrpc: []const u8, method: []const u8, id: u32 };
+const Logger = @import("logger.zig").Logger;
+const lsp = @import("lsp/lsp.zig");
 
 pub fn main() !void {
     const allocator = std.heap.c_allocator;
@@ -12,15 +11,18 @@ pub fn main() !void {
     );
     defer logger.deinit();
 
-    const msg = try lsp.rpc.encode(allocator, Test{
-        .jsonrpc = "2.0",
-        .method = "initialize",
-        .id = 1,
-    });
-    try logger.write(msg);
+    const stdin = std.io.getStdIn().reader();
 
-    const decoded = try lsp.rpc.decode(allocator, msg);
-    defer decoded.deinit();
-    try logger.write(decoded.value.jsonrpc);
-    try logger.write(decoded.value.method);
+    while (true) {
+        const c = lsp.rpc.readMessage(allocator, stdin) catch |e| {
+            try logger.write("Failed to read message: {}", .{e});
+            continue;
+        };
+
+        try handleMsg(c.value, logger);
+    }
+}
+
+pub fn handleMsg(msg: lsp.rpc.LspBaseMsg, logger: Logger) !void {
+    try logger.write("{s}", .{msg.method});
 }

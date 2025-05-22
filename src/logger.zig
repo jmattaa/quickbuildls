@@ -25,7 +25,7 @@ pub const Logger = struct {
         self.logfile.close();
     }
 
-    pub fn write(self: Logger, c: []const u8) !void {
+    pub fn write(self: Logger, comptime fmt: []const u8, args: anytype) !void {
         var now: ctime.time_t = undefined;
         _ = ctime.time(&now);
         const timeinfo = ctime.localtime(&now);
@@ -34,8 +34,9 @@ pub const Logger = struct {
 
         try self.logfile.writeAll(s);
         try self.logfile.writeAll(" "); // add an extra space after timestamp
-        try self.logfile.writeAll(c);
+        var buf: [512]u8 = undefined;
+        const formatted = try std.fmt.bufPrint(&buf, fmt, args);
+        try self.logfile.writeAll(formatted);
         try self.logfile.writeAll("\n");
     }
 };
-

@@ -1,5 +1,7 @@
 const std = @import("std");
+
 const utils = @import("../utils.zig");
+const Logger = @import("../logger.zig").Logger;
 
 pub const LspBaseMsg = struct {
     jsonrpc: []const u8, // should always be "2.0"
@@ -32,14 +34,13 @@ pub fn encode(allocator: std.mem.Allocator, msg: anytype) ![]const u8 {
     return res;
 }
 
-pub fn decode(allocator: std.mem.Allocator, msg: []const u8) !std.json.Parsed(LspBaseMsg) {
+pub fn decode(
+    allocator: std.mem.Allocator,
+    msg: []const u8,
+) !std.json.Parsed(LspBaseMsg) {
     const cut = utils.cut(msg, headersep) catch |e| switch (e) {
         utils.CutError.NotFound => {
-            std.debug.print(
-                "logger should take care of this later, but the msg is wrongly formatted\n",
-                .{},
-            );
-            return error.InvalidMessage;
+            return error.WaitForMoreData;
         },
         else => unreachable,
     };
@@ -47,13 +48,45 @@ pub fn decode(allocator: std.mem.Allocator, msg: []const u8) !std.json.Parsed(Ls
     const header = cut[0];
     const content = cut[1];
 
-    const contentlenstr = header[contentlenheader.len..];
-    const contentlen = try std.fmt.parseInt(u32, contentlenstr, 10);
+    var it = std.mem.tokenizeSequence(u8, header, "\r\n");
+    var contentlen: ?u32 = null;
+
+    while (it.next()) |line| {
+        if (std.mem.startsWith(u8, line, contentlenheader)) {
+            const len_str = line[contentlenheader.len..];
+            contentlen = try std.fmt.parseInt(u32, len_str, 10);
+            break;
+        }
+    }
+
+    if (contentlen == null) return error.MissingContentLength;
+
+    if (content.len < contentlen.?)
+        return error.WaitForMoreData;
 
     return std.json.parseFromSlice(
         LspBaseMsg,
         allocator,
-        content[0..contentlen],
+        content[0..contentlen.?],
         .{ .ignore_unknown_fields = true },
     );
+}
+
+pub fn readMessage(
+    allocator: std.mem.Allocator,
+    reader: anytype,
+) !std.json.Parsed(LspBaseMsg) {
+    var buf = std.ArrayList(u8).init(allocator);
+    while (true) {
+        var temp: [1024]u8 = undefined;
+        const n = try reader.read(&temp);
+        if (n == 0) continue; // wait for more data
+
+        try buf.appendSlice(temp[0..n]);
+
+        return decode(allocator, buf.items) catch |e| switch (e) {
+            error.WaitForMoreData => continue,
+            else => return e,
+        };
+    }
 }
