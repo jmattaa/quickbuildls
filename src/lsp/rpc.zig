@@ -1,12 +1,15 @@
 const std = @import("std");
 
 const utils = @import("../utils.zig");
-const Logger = @import("../logger.zig").Logger;
 
 pub const LspBaseMsg = struct {
-    jsonrpc: []const u8, // should always be "2.0"
+    // idk what we do with it honestly
+    // jsonrpc: []const u8, // should always be "2.0"
     method: []const u8,
-    id: u32, // we'll expect only integers from neovim but other editors?? idk
+
+    // we'll expect only integers from neovim but other editors?? idk
+    // it's optional cuz notifications don't have an id
+    id: ?u32 = null,
 };
 
 const contentlenheader = "Content-Length: ";
@@ -75,7 +78,10 @@ pub fn decode(
 pub fn readMessage(
     allocator: std.mem.Allocator,
     reader: anytype,
-) !std.json.Parsed(LspBaseMsg) {
+) !struct {
+    parsed: std.json.Parsed(LspBaseMsg),
+    buf: std.ArrayList(u8),
+} {
     var buf = std.ArrayList(u8).init(allocator);
     while (true) {
         var temp: [1024]u8 = undefined;
@@ -84,9 +90,9 @@ pub fn readMessage(
 
         try buf.appendSlice(temp[0..n]);
 
-        return decode(allocator, buf.items) catch |e| switch (e) {
+        return .{ .parsed = decode(allocator, buf.items) catch |e| switch (e) {
             error.WaitForMoreData => continue,
             else => return e,
-        };
+        }, .buf = buf };
     }
 }

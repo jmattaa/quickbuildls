@@ -1,5 +1,7 @@
 const std = @import("std");
 
+pub const VERSION = "0.0.1";
+
 pub const CutError = error{NotFound};
 
 // so we get something like the go bytes.Cut function

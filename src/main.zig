@@ -15,14 +15,25 @@ pub fn main() !void {
 
     while (true) {
         const c = lsp.rpc.readMessage(allocator, stdin) catch |e| {
-            try logger.write("Failed to read message: {}", .{e});
+            try logger.write("Failed to read message: {any}", .{e});
             continue;
         };
+        defer c.buf.deinit();
 
-        try handleMsg(c.value, logger);
+        try handleMsg(allocator, c.parsed.value, std.io.getStdOut().writer());
+        try logger.write("{s}", .{c.parsed.value.method}); // only for debugging
     }
 }
 
-pub fn handleMsg(msg: lsp.rpc.LspBaseMsg, logger: Logger) !void {
-    try logger.write("{s}", .{msg.method});
+pub fn handleMsg(
+    allocator: std.mem.Allocator,
+    msg: lsp.rpc.LspBaseMsg,
+    out: anytype,
+) !void {
+    if (std.mem.eql(u8, msg.method, "initialize")) {
+        // initialize should always have an id
+        const res = lsp.initialize.respond(msg.id.?);
+        const encoded = try lsp.rpc.encode(allocator, res);
+        try out.writeAll(encoded);
+    }
 }
