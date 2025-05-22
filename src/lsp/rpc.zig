@@ -35,7 +35,10 @@ pub fn encode(allocator: std.mem.Allocator, msg: anytype) ![]const u8 {
 pub fn decode(allocator: std.mem.Allocator, msg: []const u8) !std.json.Parsed(LspBaseMsg) {
     const cut = utils.cut(msg, headersep) catch |e| switch (e) {
         utils.CutError.NotFound => {
-            std.debug.print("logger should take care of this later, but the msg is wrongly formatted\n", .{});
+            std.debug.print(
+                "logger should take care of this later, but the msg is wrongly formatted\n",
+                .{},
+            );
             return error.InvalidMessage;
         },
         else => unreachable,
@@ -47,5 +50,10 @@ pub fn decode(allocator: std.mem.Allocator, msg: []const u8) !std.json.Parsed(Ls
     const contentlenstr = header[contentlenheader.len..];
     const contentlen = try std.fmt.parseInt(u32, contentlenstr, 10);
 
-    return std.json.parseFromSlice(LspBaseMsg, allocator, content[0..contentlen], .{.ignore_unknown_fields = true});
+    return std.json.parseFromSlice(
+        LspBaseMsg,
+        allocator,
+        content[0..contentlen],
+        .{ .ignore_unknown_fields = true },
+    );
 }
