@@ -4,7 +4,7 @@ const utils = @import("../utils.zig");
 
 pub const LspBaseMsg = struct {
     // idk what we do with it honestly
-    // jsonrpc: []const u8, // should always be "2.0"
+    jsonrpc: []const u8, // should always be "2.0"
     method: []const u8,
 
     // we'll expect only integers from neovim but other editors?? idk

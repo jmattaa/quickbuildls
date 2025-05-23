@@ -15,13 +15,13 @@ pub fn main() !void {
 
     while (true) {
         const c = lsp.rpc.readMessage(allocator, stdin) catch |e| {
-            try logger.write("Failed to read message: {any}", .{e});
+            try logger.write(allocator, "Failed to read message: {any}", .{e});
             continue;
         };
         defer c.buf.deinit();
 
         try handleMsg(allocator, c.parsed.value, std.io.getStdOut().writer());
-        try logger.write("{s}", .{c.parsed.value.method}); // only for debugging
+        try logger.write(allocator, "{s}", .{c.parsed.value.method}); // only for debugging
     }
 }
 
