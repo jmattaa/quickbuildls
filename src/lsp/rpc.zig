@@ -57,7 +57,7 @@ pub const SplitMsgRet = struct {
 };
 
 /// splits the message to return only the contents and not headers.
-/// returns WaitForMoreData if the message is not complete
+/// returns `error.WaitForMoreData` if the message is not complete
 pub fn splitMsg(buf: []const u8) !SplitMsgRet {
     const cut = utils.cut(buf, headersep) catch |e| switch (e) {
         utils.CutError.NotFound => return error.WaitForMoreData,
