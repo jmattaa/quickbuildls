@@ -15,11 +15,12 @@ var State: StateType = .{
     .version = 0,
 };
 
-pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
+const debug = @import("builtin").mode == .Debug;
 
-    const allocator = arena.allocator();
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
 
     const log_path = std.process.getEnvVarOwned(
         allocator,
@@ -34,10 +35,16 @@ pub fn main() !void {
             "error: {s}",
             .{@errorName(e)},
         );
-        // debugging, add comptime define for debug!
-        try logger.write(allocator, "{any}", .{@errorReturnTrace()});
+        if (debug) try logger.write(allocator, "{any}", .{@errorReturnTrace()});
         return e;
     };
+
+    if (!debug) return;
+
+    const leaked = gpa.detectLeaks();
+    if (leaked) {
+        try logger.write(allocator, "LEAKED MEMORY!!!", .{});
+    }
 }
 
 pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
