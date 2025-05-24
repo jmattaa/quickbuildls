@@ -2,18 +2,9 @@ const std = @import("std");
 
 const Logger = @import("logger.zig").Logger;
 const lsp = @import("lsp/lsp.zig");
+const state = @import("state.zig");
 
-const StateType = struct {
-    document: []u8,
-    version: u32,
-};
-
-/// The state of the document, there is only going to be one document we have
-/// to keep track of. Because we don't need any cross file completions and so on
-var State: StateType = .{
-    .document = "",
-    .version = 0,
-};
+var State: state.State = undefined;
 
 const debug = @import("builtin").mode == .Debug;
 
@@ -38,6 +29,9 @@ pub fn main() !void {
         if (debug) try logger.write(allocator, "{any}", .{@errorReturnTrace()});
         return e;
     };
+
+    State = try state.State.init();
+    defer State.deinit(allocator);
 
     if (!debug) return;
 
@@ -114,8 +108,8 @@ pub fn handleMsg(
         );
         defer notif.deinit();
 
-        State.document = try allocator.dupe(
-            u8,
+        try State.setDocument(
+            allocator,
             notif.value.params.textDocument.text,
         );
         State.version = notif.value.params.textDocument.version;
@@ -130,8 +124,8 @@ pub fn handleMsg(
         // TODO should it be an array of documents in the state? even though
         // we only should keep track of one at a time????
         const contentChanges = notif.value.params.contentChanges;
-        State.document = try allocator.dupe(
-            u8,
+        try State.setDocument(
+            allocator,
             contentChanges[contentChanges.len - 1].text,
         );
         State.version = notif.value.params.textDocument.version;
