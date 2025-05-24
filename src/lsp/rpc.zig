@@ -37,62 +37,52 @@ pub fn encode(allocator: std.mem.Allocator, msg: anytype) ![]const u8 {
     return res;
 }
 
+/// decodes ONLY the contents of an LSP message
 pub fn decode(
     allocator: std.mem.Allocator,
-    msg: []const u8,
+    content: []const u8,
 ) !std.json.Parsed(LspBaseMsg) {
-    const cut = utils.cut(msg, headersep) catch |e| switch (e) {
-        utils.CutError.NotFound => {
-            return error.WaitForMoreData;
-        },
+    return std.json.parseFromSlice(
+        LspBaseMsg,
+        allocator,
+        content,
+        .{ .ignore_unknown_fields = true },
+    );
+}
+
+pub const SplitMsgRet = struct {
+    header: []const u8,
+    content: []const u8,
+    full_len: usize,
+};
+
+/// splits the message to return only the contents and not headers.
+/// returns WaitForMoreData if the message is not complete
+pub fn splitMsg(buf: []const u8) !SplitMsgRet {
+    const cut = utils.cut(buf, headersep) catch |e| switch (e) {
+        utils.CutError.NotFound => return error.WaitForMoreData,
         else => unreachable,
     };
 
     const header = cut[0];
     const content = cut[1];
 
+    var content_len: ?usize = null;
     var it = std.mem.tokenizeSequence(u8, header, "\r\n");
-    var contentlen: ?u32 = null;
-
     while (it.next()) |line| {
         if (std.mem.startsWith(u8, line, contentlenheader)) {
             const len_str = line[contentlenheader.len..];
-            contentlen = try std.fmt.parseInt(u32, len_str, 10);
+            content_len = try std.fmt.parseInt(usize, len_str, 10);
             break;
         }
     }
 
-    if (contentlen == null) return error.MissingContentLength;
-
-    if (content.len < contentlen.?)
+    if (content_len == null or content.len < content_len.?)
         return error.WaitForMoreData;
 
-    return std.json.parseFromSlice(
-        LspBaseMsg,
-        allocator,
-        content[0..contentlen.?],
-        .{ .ignore_unknown_fields = true },
-    );
-}
-
-pub fn readMessage(
-    allocator: std.mem.Allocator,
-    reader: anytype,
-) !struct {
-    parsed: std.json.Parsed(LspBaseMsg),
-    buf: std.ArrayList(u8),
-} {
-    var buf = std.ArrayList(u8).init(allocator);
-    while (true) {
-        var temp: [1024]u8 = undefined;
-        const n = try reader.read(&temp);
-        if (n == 0) continue; // wait for more data
-
-        try buf.appendSlice(temp[0..n]);
-
-        return .{ .parsed = decode(allocator, buf.items) catch |e| switch (e) {
-            error.WaitForMoreData => continue,
-            else => return e,
-        }, .buf = buf };
-    }
+    return .{
+        .header = header,
+        .content = content,
+        .full_len = header.len + headersep.len + content_len.?,
+    };
 }

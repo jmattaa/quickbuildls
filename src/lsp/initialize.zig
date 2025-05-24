@@ -5,9 +5,9 @@ pub const initializeresponse = struct {
     id: u32,
     result: struct {
         capabilities: struct {
-            textdocumentsync: u8,
+            textDocumentSync: u8,
         },
-        serverinfo: struct {
+        serverInfo: struct {
             name: []const u8,
             version: []const u8,
         },
@@ -20,13 +20,12 @@ pub fn respond(id: u32) initializeresponse {
         .id = id,
         .result = .{
             .capabilities = .{
-                .textdocumentsync = 1, // full
+                .textDocumentSync = 1, // full
             },
-            .serverinfo = .{
+            .serverInfo = .{
                 .name = "quickbuildls",
                 .version = utils.VERSION,
             },
         },
     };
 }
-
