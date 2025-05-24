@@ -21,6 +21,10 @@ pub fn respond(id: u32) initializeresponse {
         .result = .{
             .capabilities = .{
                 .textDocumentSync = 1, // full
+                                       // honetly i don't think it's a bad idea
+                                       // to send the full thing and not do 
+                                       // partial updates cuz it's only one file
+                                       // we're working with
             },
             .serverInfo = .{
                 .name = "quickbuildls",

@@ -39,11 +39,12 @@ pub fn encode(allocator: std.mem.Allocator, msg: anytype) ![]const u8 {
 
 /// decodes ONLY the contents of an LSP message
 pub fn decode(
+    comptime T: type,
     allocator: std.mem.Allocator,
     content: []const u8,
-) !std.json.Parsed(LspBaseMsg) {
+) !std.json.Parsed(T) {
     return std.json.parseFromSlice(
-        LspBaseMsg,
+        T,
         allocator,
         content,
         .{ .ignore_unknown_fields = true },
