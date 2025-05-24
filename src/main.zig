@@ -6,9 +6,12 @@ const lsp = @import("lsp/lsp.zig");
 pub fn main() !void {
     const allocator = std.heap.c_allocator;
 
-    const logger = try Logger.init(
-        "/Users/jonathan/dev/quickbuildls/quickbuildls.log",
-    );
+    const log_path = std.process.getEnvVarOwned(
+        allocator,
+        "QUICKBUILDLS_LOG_PATH",
+    ) catch "/tmp/quickbuildls.log";
+
+    const logger = try Logger.init(log_path);
     defer logger.deinit();
     run(allocator, logger) catch |e| {
         try logger.write(
