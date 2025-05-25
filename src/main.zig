@@ -106,7 +106,7 @@ pub fn handleMsg(
         try out.writeAll(encoded);
     } else if (std.mem.eql(u8, msg.method, "textDocument/didOpen")) {
         const notif = try lsp.rpc.decode(
-            lsp.textDocument.didOpenNotif,
+            lsp.textDocument.notifs.didOpenNotif,
             allocator,
             content,
         );
@@ -119,7 +119,7 @@ pub fn handleMsg(
         State.version = notif.value.params.textDocument.version;
     } else if (std.mem.eql(u8, msg.method, "textDocument/didChange")) {
         const notif = try lsp.rpc.decode(
-            lsp.textDocument.didChangeNotif,
+            lsp.textDocument.notifs.didChangeNotif,
             allocator,
             content,
         );
@@ -133,5 +133,17 @@ pub fn handleMsg(
             contentChanges[contentChanges.len - 1].text,
         );
         State.version = notif.value.params.textDocument.version;
+    } else if (std.mem.eql(u8, msg.method, "textDocument/hover")) {
+        const req = try lsp.rpc.decode(
+            lsp.textDocument.hover.request,
+            allocator,
+            content,
+        );
+        defer req.deinit();
+
+        const res = lsp.textDocument.hover.respond(req.value);
+        const encoded = try lsp.rpc.encode(allocator, res);
+        defer allocator.free(encoded);
+        try out.writeAll(encoded);
     }
 }

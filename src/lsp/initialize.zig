@@ -6,6 +6,7 @@ pub const initializeresponse = struct {
     result: struct {
         capabilities: struct {
             textDocumentSync: u8,
+            hoverProvider: bool,
         },
         serverInfo: struct {
             name: []const u8,
@@ -20,11 +21,12 @@ pub fn respond(id: u32) initializeresponse {
         .id = id,
         .result = .{
             .capabilities = .{
+                // honetly i don't think it's a bad idea
+                // to send the full thing and not do
+                // partial updates cuz it's only one file
+                // we're working with
                 .textDocumentSync = 1, // full
-                                       // honetly i don't think it's a bad idea
-                                       // to send the full thing and not do 
-                                       // partial updates cuz it's only one file
-                                       // we're working with
+                .hoverProvider = true,
             },
             .serverInfo = .{
                 .name = "quickbuildls",
