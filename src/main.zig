@@ -8,37 +8,41 @@ var State: state.State = undefined;
 
 const debug = @import("builtin").mode == .Debug;
 
+const DEFAULT_LOGPATH = "/tmp/quickbuildls.log";
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
+    defer {
+        if (debug) {
+            const leaked = gpa.detectLeaks();
+            if (leaked) {
+                std.debug.print("LEAKED MEMORY!!\n", .{});
+            }
+        }
+        _ = gpa.deinit();
+    }
     const allocator = gpa.allocator();
 
     const log_path = std.process.getEnvVarOwned(
         allocator,
         "QUICKBUILDLS_LOG_PATH",
-    ) catch "/tmp/quickbuildls.log";
+    ) catch DEFAULT_LOGPATH;
+    defer {
+        if (!std.mem.eql(u8, log_path, DEFAULT_LOGPATH))
+            allocator.free(log_path);
+    }
 
     const logger = try Logger.init(log_path);
     defer logger.deinit();
-    run(allocator, logger) catch |e| {
-        try logger.write(
-            allocator,
-            "error: {s}",
-            .{@errorName(e)},
-        );
-        if (debug) try logger.write(allocator, "{any}", .{@errorReturnTrace()});
-        return e;
-    };
 
     State = try state.State.init();
     defer State.deinit(allocator);
 
-    if (!debug) return;
-
-    const leaked = gpa.detectLeaks();
-    if (leaked) {
-        try logger.write(allocator, "LEAKED MEMORY!!!", .{});
-    }
+    run(allocator, logger) catch |e| {
+        try logger.write(allocator, "error: {s}", .{@errorName(e)});
+        if (debug) try logger.write(allocator, "{any}", .{@errorReturnTrace()});
+        return e;
+    };
 }
 
 pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
@@ -63,17 +67,9 @@ pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
                 else => return e,
             };
 
-            const parsed = try lsp.rpc.decode(
-                lsp.rpc.LspBaseMsg,
-                allocator,
-                msg.content,
-            );
-            defer parsed.deinit();
-
             try handleMsg(
                 allocator,
                 logger,
-                parsed.value,
                 msg.content,
                 std.io.getStdOut().writer(),
             );
@@ -90,15 +86,23 @@ pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
 pub fn handleMsg(
     allocator: std.mem.Allocator,
     logger: Logger,
-    msg: lsp.rpc.LspBaseMsg,
     content: []const u8,
     out: anytype,
 ) !void {
+    const decoded = try lsp.rpc.decode(
+        lsp.rpc.LspBaseMsg,
+        allocator,
+        content,
+    );
+    defer decoded.deinit();
+
+    const msg = decoded.value;
     try logger.write(allocator, "{s}", .{msg.method});
     if (std.mem.eql(u8, msg.method, "initialize")) {
         // initialize should always have an id
         const res = lsp.initialize.respond(msg.id.?);
         const encoded = try lsp.rpc.encode(allocator, res);
+        defer allocator.free(encoded);
         try out.writeAll(encoded);
     } else if (std.mem.eql(u8, msg.method, "textDocument/didOpen")) {
         const notif = try lsp.rpc.decode(

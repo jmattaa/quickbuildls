@@ -44,4 +44,8 @@ pub const Logger = struct {
         try self.logfile.writeAll(formatted);
         try self.logfile.writeAll("\n");
     }
+
+    pub fn writeRaw(self: Logger, data: []const u8) !void {
+        try self.logfile.writeAll(data);
+    }
 };

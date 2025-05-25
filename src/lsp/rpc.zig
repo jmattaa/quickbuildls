@@ -15,6 +15,8 @@ pub const LspBaseMsg = struct {
 const contentlenheader = "Content-Length: ";
 const headersep = "\r\n\r\n";
 
+/// the result of this function `MUST` be freed using the same allocator that 
+/// was passed in
 pub fn encode(allocator: std.mem.Allocator, msg: anytype) ![]const u8 {
     var buf = std.ArrayList(u8).init(allocator);
     defer buf.deinit();

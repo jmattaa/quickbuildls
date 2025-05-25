@@ -29,3 +29,16 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
     end
 })
 ```
+
+
+btw this is pretty useful for debugging
+
+```bash
+# redirect stderr to a file
+quickbuildls 2>> quickbuildls.log
+```
+
+or this is a pretty nice trick 
+```bash
+quickbuildls | tee quickbuildls.log 2> >(tee -a quickbuildls.log >&2)
+```
