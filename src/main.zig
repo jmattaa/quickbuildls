@@ -141,7 +141,8 @@ pub fn handleMsg(
         );
         defer req.deinit();
 
-        const res = lsp.textDocument.hover.respond(req.value);
+        const res = try lsp.textDocument.hover.respond(allocator, req.value, State);
+        defer lsp.textDocument.hover.deinitRes(res);
         const encoded = try lsp.rpc.encode(allocator, res);
         defer allocator.free(encoded);
         try out.writeAll(encoded);

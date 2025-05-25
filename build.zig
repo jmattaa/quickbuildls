@@ -3,7 +3,8 @@ const std = @import("std");
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
+    const allocator = std.heap.page_allocator;
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -32,6 +33,38 @@ pub fn build(b: *std.Build) void {
         .name = "quickbuildls",
         .root_module = exe_mod,
     });
+
+    // CPP
+    var dir = try std.fs.cwd().openDir("src/cpp", .{});
+    defer dir.close();
+
+    exe.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src/cpp" } });
+    exe.linkLibCpp();
+
+    const cppflags = [_][]const u8{"--std=c++17"};
+
+    var dirIterator = dir.iterate();
+    while (try dirIterator.next()) |entry| {
+        const path = try std.fs.path.join(
+            allocator,
+            &.{ "src/cpp", entry.name },
+        );
+        defer allocator.free(path);
+        if (std.mem.endsWith(u8, entry.name, ".cpp")) {
+            exe.addCSourceFile(
+                .{
+                    .flags = &cppflags,
+                    .language = .cpp,
+                    .file = .{
+                        .src_path = .{
+                            .owner = b,
+                            .sub_path = path,
+                        },
+                    },
+                },
+            );
+        }
+    }
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
