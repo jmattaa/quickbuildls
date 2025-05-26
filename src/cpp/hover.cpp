@@ -9,7 +9,7 @@
 
 #include <string>
 
-size_t get_origin_index(const Origin &origin)
+static size_t get_origin_index(const Origin &origin)
 {
     return std::visit(
         [](auto const &val) -> size_t
@@ -23,10 +23,16 @@ size_t get_origin_index(const Origin &origin)
         origin);
 }
 
-bool matches_offset(size_t offset, const Origin &origin)
+// cuz the offset is at the end of the decl for a task or a feild so the range
+// should be (offset - size <= x < offset)
+// note the <= in the begining and < in the end!
+static bool in_range(size_t x, const Origin &origin, std::string content)
 {
-    size_t pos = get_origin_index(origin);
-    return pos != SIZE_MAX && pos == offset;
+    size_t offset = get_origin_index(origin);
+    if (offset < content.size())
+        return false; // ain't sure if we'll ever reach here
+
+    return offset != SIZE_MAX && offset - content.size() <= x && x < offset;
 }
 
 static size_t line_char_to_offset(const std::string &source, int line,
@@ -45,7 +51,8 @@ static size_t line_char_to_offset(const std::string &source, int line,
     return offset + character;
 }
 
-// this should prolly be optimized cuz idk it parses everything and all
+// this should prolly be optimized cuz idk it parses the whole file each time
+// we want to do a hover????
 extern "C" const char *get_hover_md(const char *csrc, int l, int c)
 {
     std::string source(csrc);
@@ -67,11 +74,11 @@ extern "C" const char *get_hover_md(const char *csrc, int l, int c)
     };
 
     for (const Field &f : ast.fields)
-        if (matches_offset(boffset, f.origin))
+        if (in_range(boffset, f.origin, f.identifier.content))
             return mkstr("**Variable:** `" + f.identifier.content + "`");
 
     for (const Task &t : ast.tasks)
-        if (matches_offset(boffset, t.origin))
+        if (in_range(boffset, t.origin, t.iterator.content))
             return mkstr("**Task:** `" + t.iterator.content + "`");
 
     return NULL;
