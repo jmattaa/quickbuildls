@@ -11,16 +11,12 @@
 
 static size_t get_origin_index(const Origin &origin)
 {
-    return std::visit(
-        [](auto const &val) -> size_t
-        {
-            using T = std::decay_t<decltype(val)>;
-            if constexpr (std::is_same_v<T, InputStreamPos>)
-                return val.index;
-            else
-                return SIZE_MAX;
-        },
-        origin);
+    if (std::holds_alternative<InputStreamPos>(origin))
+        return std::get<InputStreamPos>(origin).index;
+    if (std::holds_alternative<ObjectReference>(origin))
+        return std::get<ObjectReference>(origin).size();
+
+    return SIZE_MAX;
 }
 
 // cuz the offset is at the end of the decl for a task or a feild so the range
@@ -29,10 +25,10 @@ static size_t get_origin_index(const Origin &origin)
 static bool in_range(size_t x, const Origin &origin, std::string content)
 {
     size_t offset = get_origin_index(origin);
-    if (offset < content.size())
-        return false; // ain't sure if we'll ever reach here
+    if (offset < content.size() || offset == SIZE_MAX)
+        return false;
 
-    return offset != SIZE_MAX && offset - content.size() <= x && x < offset;
+    return offset - content.size() <= x && x < offset;
 }
 
 static size_t line_char_to_offset(const std::string &source, int line,
@@ -50,6 +46,52 @@ static size_t line_char_to_offset(const std::string &source, int line,
     }
     return offset + character;
 }
+
+struct ASTVisitContent
+{
+    std::string operator()(Identifier const &id) { return id.content; }
+    std::string operator()(Literal const &li) { return li.content; }
+    std::string operator()(FormattedLiteral const &fl)
+    {
+        if (fl.contents.empty())
+            return "";
+        return std::visit(ASTVisitContent{}, fl.contents.front());
+    }
+
+    std::string operator()(List const &l)
+    {
+        if (l.contents.empty())
+            return "";
+        std::string res;
+        for (auto &item : l.contents)
+            res +=
+                (res.empty() ? "" : ", ") + std::visit(ASTVisitContent{}, item);
+        return res;
+    }
+
+    std::string operator()(Boolean const &b)
+    {
+        return b.content ? "true" : "false";
+    }
+
+    // idk what this is tho
+    std::string operator()(Replace const &r)
+    {
+        if (!r.replacement)
+            return "";
+        return std::visit(ASTVisitContent{}, *r.replacement);
+    }
+};
+
+struct ASTVisitOrigin
+{
+    Origin operator()(Identifier const &i) { return i.origin; }
+    Origin operator()(Literal const &literal) { return literal.origin; }
+    Origin operator()(FormattedLiteral const &fl) { return fl.origin; }
+    Origin operator()(List const &l) { return l.origin; }
+    Origin operator()(Boolean const &b) { return b.origin; }
+    Origin operator()(Replace const &r) { return r.origin; }
+};
 
 // this should prolly be optimized cuz idk it parses the whole file each time
 // we want to do a hover????
@@ -75,11 +117,43 @@ extern "C" const char *get_hover_md(const char *csrc, int l, int c)
 
     for (const Field &f : ast.fields)
         if (in_range(boffset, f.origin, f.identifier.content))
-            return mkstr("**Variable:** `" + f.identifier.content + "`");
+            return mkstr("### Variable: `" + f.identifier.content + "`");
 
     for (const Task &t : ast.tasks)
-        if (in_range(boffset, t.origin, t.iterator.content))
-            return mkstr("**Task:** `" + t.iterator.content + "`");
+    {
+        std::string tdependencies;
+
+        for (const Field &f : t.fields)
+        {
+            if (f.identifier.content == "depends")
+            {
+                tdependencies = std::visit(ASTVisitContent{}, f.expression);
+                if (in_range(boffset, f.origin, f.identifier.content))
+                    return mkstr("### Dependencies: `" + tdependencies + "`" +
+                                 "\n---" + "\n" +
+                                 "the dependency list is the lists of tasks "
+                                 "that should be run before this task.");
+            }
+            else if (f.identifier.content == "run")
+            {
+                if (in_range(boffset, f.origin, f.identifier.content))
+                    return mkstr(
+                        "### Run \n---\nThe command this task will run");
+            }
+
+            if (in_range(boffset, f.origin, f.identifier.content))
+                return mkstr("### Field: `" + f.identifier.content + "`");
+        }
+
+        const std::string &tname = std::visit(ASTVisitContent{}, t.identifier);
+        if (in_range(boffset, t.origin, tname))
+        {
+            return mkstr("### Task: `" + tname + "`\n---" +
+                         (tdependencies.empty()
+                              ? ""
+                              : ("\ndepends on: `" + tdependencies + "`")));
+        }
+    }
 
     return NULL;
 }

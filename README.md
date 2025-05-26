@@ -1,6 +1,6 @@
 # quickbuildls
 
-a simple language server for quickbuild
+a simple language server for [quickbuild](https://github.com/nordtechtiger/quickbuild)
 
 
 simple neovim setup:
