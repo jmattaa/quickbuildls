@@ -54,11 +54,11 @@ pub fn respond(
         .id = req.id,
     };
 
-    const c_str = try allocator.dupeZ(u8, document); // null-terminated
-    defer allocator.free(c_str);
+    const c_src = try allocator.dupeZ(u8, document); // null-terminated
+    defer allocator.free(c_src);
 
     const md: [*c]const u8 = chover.get_hover_md(
-        c_str,
+        c_src,
         req.params.position.line,
         req.params.position.character,
     );

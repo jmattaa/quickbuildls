@@ -6,82 +6,9 @@
 #include "hover.h"
 #include "lexer.hpp"
 #include "parser.hpp"
+#include "quickbuildls.hpp"
 
 #include <string>
-
-static size_t get_origin_index(const Origin &origin)
-{
-    if (std::holds_alternative<InputStreamPos>(origin))
-        return std::get<InputStreamPos>(origin).index;
-    if (std::holds_alternative<ObjectReference>(origin))
-        return std::get<ObjectReference>(origin).size();
-
-    return SIZE_MAX;
-}
-
-// cuz the offset is at the end of the decl for a task or a feild so the range
-// should be (offset - size <= x < offset)
-// note the <= in the begining and < in the end!
-static bool in_range(size_t x, const Origin &origin, std::string content)
-{
-    size_t offset = get_origin_index(origin);
-    if (offset < content.size() || offset == SIZE_MAX)
-        return false;
-
-    return offset - content.size() <= x && x < offset;
-}
-
-static size_t line_char_to_offset(const std::string &source, int line,
-                                  int character)
-{
-    size_t offset = 0;
-    int current_line = 0;
-    while (offset < source.size())
-    {
-        if (current_line == line)
-            break;
-        if (source[offset] == '\n')
-            current_line++;
-        offset++;
-    }
-    return offset + character;
-}
-
-struct ASTVisitContent
-{
-    std::string operator()(Identifier const &id) { return id.content; }
-    std::string operator()(Literal const &li) { return li.content; }
-    std::string operator()(FormattedLiteral const &fl)
-    {
-        if (fl.contents.empty())
-            return "";
-        return std::visit(ASTVisitContent{}, fl.contents.front());
-    }
-
-    std::string operator()(List const &l)
-    {
-        if (l.contents.empty())
-            return "";
-        std::string res;
-        for (auto &item : l.contents)
-            res +=
-                (res.empty() ? "" : ", ") + std::visit(ASTVisitContent{}, item);
-        return res;
-    }
-
-    std::string operator()(Boolean const &b)
-    {
-        return b.content ? "true" : "false";
-    }
-
-    // idk what this is tho
-    std::string operator()(Replace const &r)
-    {
-        if (!r.replacement)
-            return "";
-        return std::visit(ASTVisitContent{}, *r.replacement);
-    }
-};
 
 struct ASTVisitOrigin
 {
@@ -107,13 +34,6 @@ extern "C" const char *get_hover_md(const char *csrc, int l, int c)
     Parser parser(token_stream);
 
     AST ast(parser.parse_tokens());
-
-    auto mkstr = [](const std::string &s)
-    {
-        char *cstr = (char *)std::malloc(s.size() + 1);
-        std::memcpy(cstr, s.c_str(), s.size() + 1);
-        return cstr;
-    };
 
     for (const Field &f : ast.fields)
         if (in_range(boffset, f.origin, f.identifier.content))

@@ -2,6 +2,11 @@
 
 a simple language server for [quickbuild](https://github.com/nordtechtiger/quickbuild)
 
+### supports:
+
+- hover
+- goto definition
+
 
 simple neovim setup:
 
