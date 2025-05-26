@@ -30,6 +30,16 @@ pub const response = struct {
             kind: []const u8,
             value: []const u8,
         },
+        range: ?struct {
+            start: struct {
+                line: c_int,
+                character: c_int,
+            },
+            end: struct {
+                line: c_int,
+                character: c_int,
+            },
+        } = null,
     } = null,
 };
 

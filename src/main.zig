@@ -134,17 +134,20 @@ pub fn handleMsg(
         );
         State.version = notif.value.params.textDocument.version;
     } else if (std.mem.eql(u8, msg.method, "textDocument/hover")) {
-        const req = try lsp.rpc.decode(
-            lsp.textDocument.hover.request,
+        try lsp.respond(
             allocator,
+            lsp.textDocument.hover,
             content,
+            State,
+            out,
         );
-        defer req.deinit();
-
-        const res = try lsp.textDocument.hover.respond(allocator, req.value, State);
-        defer lsp.textDocument.hover.deinitRes(res);
-        const encoded = try lsp.rpc.encode(allocator, res);
-        defer allocator.free(encoded);
-        try out.writeAll(encoded);
+    } else if (std.mem.eql(u8, msg.method, "textDocument/definition")) {
+        try lsp.respond(
+            allocator,
+            lsp.textDocument.definition,
+            content,
+            State,
+            out,
+        );
     }
 }

@@ -7,6 +7,7 @@ pub const initializeresponse = struct {
         capabilities: struct {
             textDocumentSync: u8,
             hoverProvider: bool,
+            definitionProvider: bool,
         },
         serverInfo: struct {
             name: []const u8,
@@ -27,6 +28,7 @@ pub fn respond(id: u32) initializeresponse {
                 // we're working with
                 .textDocumentSync = 1, // full
                 .hoverProvider = true,
+                .definitionProvider = true,
             },
             .serverInfo = .{
                 .name = "quickbuildls",
