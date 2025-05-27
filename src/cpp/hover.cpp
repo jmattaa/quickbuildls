@@ -35,9 +35,13 @@ extern "C" const char *get_hover_md(const char *csrc, int l, int c)
 
     AST ast(parser.parse_tokens());
 
+    size_t offset;
     for (const Field &f : ast.fields)
-        if (in_range(boffset, f.origin, f.identifier.content))
+    {
+        offset = get_origin_index(f.origin);
+        if (in_range(boffset, offset, f.identifier.content))
             return mkstr("### Variable: `" + f.identifier.content + "`");
+    }
 
     for (const Task &t : ast.tasks)
     {
@@ -48,7 +52,8 @@ extern "C" const char *get_hover_md(const char *csrc, int l, int c)
             if (f.identifier.content == "depends")
             {
                 tdependencies = std::visit(ASTVisitContent{}, f.expression);
-                if (in_range(boffset, f.origin, f.identifier.content))
+                offset = get_origin_index(f.origin);
+                if (in_range(boffset, offset, f.identifier.content))
                     return mkstr("### Dependencies: `" + tdependencies + "`" +
                                  "\n---" + "\n" +
                                  "the dependency list is the lists of tasks "
@@ -56,17 +61,24 @@ extern "C" const char *get_hover_md(const char *csrc, int l, int c)
             }
             else if (f.identifier.content == "run")
             {
-                if (in_range(boffset, f.origin, f.identifier.content))
+                offset = get_origin_index(f.origin);
+                if (in_range(boffset, offset, f.identifier.content))
                     return mkstr(
                         "### Run \n---\nThe command this task will run");
             }
 
-            if (in_range(boffset, f.origin, f.identifier.content))
+            offset = get_origin_index(f.origin);
+            if (in_range(boffset, offset, f.identifier.content))
                 return mkstr("### Field: `" + f.identifier.content + "`");
         }
 
         const std::string &tname = std::visit(ASTVisitContent{}, t.identifier);
-        if (in_range(boffset, t.origin, tname))
+        offset = get_origin_index(t.origin);
+
+        if (source[offset - tname.size() - 1] != '\n')
+            offset -= 1; // to fix the offset thingy for tasks that start with "
+
+        if (in_range(boffset, offset, tname))
         {
             return mkstr("### Task: `" + tname + "`\n---" +
                          (tdependencies.empty()

@@ -13,7 +13,7 @@
 const char *mkstr(const std::string &s);
 size_t line_char_to_offset(const std::string &source, int line, int character);
 size_t get_origin_index(const Origin &origin);
-bool in_range(size_t x, const Origin &origin, std::string content);
+bool in_range(size_t x, size_t offset, std::string content);
 void get_origin_line_char(const Origin &origin, const std::string &src,
                           int *line, int *character);
 // defined in lexer.cpp

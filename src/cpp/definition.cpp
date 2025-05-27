@@ -61,7 +61,7 @@ extern "C" void get_definition(const char *csrc, int l, int c, int *tol,
             get_origin_line_char(f.origin, source, &origintol, &origintoc);
 
             *tol = origintol;
-            *toc = origintoc;
+            *toc = origintoc - f.identifier.content.size();
 
             return;
         }
@@ -76,7 +76,7 @@ extern "C" void get_definition(const char *csrc, int l, int c, int *tol,
             get_origin_line_char(t.origin, source, &origintol, &origintoc);
 
             *tol = origintol;
-            *toc = origintoc;
+            *toc = origintoc - tname.size();
 
             return;
         }
@@ -89,7 +89,7 @@ extern "C" void get_definition(const char *csrc, int l, int c, int *tol,
                 get_origin_line_char(f.origin, source, &origintol, &origintoc);
 
                 *tol = origintol;
-                *toc = origintoc;
+                *toc = origintoc - f.identifier.content.size();
 
                 return;
             }

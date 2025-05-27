@@ -42,9 +42,8 @@ size_t get_origin_index(const Origin &origin)
 // cuz the offset is at the end of the decl for a task or a feild so the range
 // should be (offset - size <= x < offset)
 // note the <= in the begining and < in the end!
-bool in_range(size_t x, const Origin &origin, std::string content)
+bool in_range(size_t x, size_t offset, std::string content)
 {
-    size_t offset = get_origin_index(origin);
     if (offset < content.size() || offset == SIZE_MAX)
         return false;
 
@@ -64,11 +63,9 @@ void get_origin_line_char(const Origin &origin, const std::string &src,
             (*line)++;
             *character = 0;
         }
-        (*character)++;
+        else
+            (*character)++;
     }
-
-    if (*character > 0)
-        (*character)--; // idk i just got this with trial and error
 }
 
 #define KEWORDS(_X)                                                            \
