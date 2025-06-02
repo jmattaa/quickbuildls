@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) !void {
 
     // C++
     // -----------------------------------------------------------------------
-    var dir = try std.fs.cwd().openDir("src/cpp", .{});
+    var dir = try std.fs.cwd().openDir("src/cpp", .{ .iterate = true });
     defer dir.close();
 
     exe.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src/cpp" } });
