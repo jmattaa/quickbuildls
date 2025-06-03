@@ -8,6 +8,7 @@ pub const initializeresponse = struct {
             textDocumentSync: u8,
             hoverProvider: bool,
             definitionProvider: bool,
+            completionProvider: struct {},
         },
         serverInfo: struct {
             name: []const u8,
@@ -29,6 +30,7 @@ pub fn respond(id: u32) initializeresponse {
                 .textDocumentSync = 1, // full
                 .hoverProvider = true,
                 .definitionProvider = true,
+                .completionProvider = .{}, // just say we want to do completions
             },
             .serverInfo = .{
                 .name = "quickbuildls",

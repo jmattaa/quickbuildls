@@ -17,13 +17,14 @@ pub fn build(b: *std.Build) !void {
         .root_module = exe_mod,
     });
 
-    // C++
+    // C++ & C
     // -----------------------------------------------------------------------
     var dir = try std.fs.cwd().openDir("src/cpp", .{});
     defer dir.close();
 
     exe.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src/cpp" } });
     exe.linkLibCpp();
+    exe.linkLibC();
 
     const cppflags = [_][]const u8{"--std=c++17"};
 
@@ -49,6 +50,7 @@ pub fn build(b: *std.Build) !void {
             );
         }
     }
+
     // -----------------------------------------------------------------------
 
     b.installArtifact(exe);

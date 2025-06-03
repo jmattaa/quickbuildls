@@ -89,22 +89,18 @@ pub fn handleMsg(
     content: []const u8,
     out: anytype,
 ) !void {
-    const decoded = try lsp.rpc.decode(
-        lsp.rpc.LspBaseMsg,
-        allocator,
-        content,
-    );
+    const decoded = try lsp.rpc.decode(lsp.rpc.PeekMsg, allocator, content);
     defer decoded.deinit();
 
-    const msg = decoded.value;
-    try logger.write(allocator, "{s}", .{msg.method});
-    if (std.mem.eql(u8, msg.method, "initialize")) {
+    try logger.write(allocator, "{s}", .{decoded.value.method});
+    if (std.mem.eql(u8, decoded.value.method, "initialize")) {
+        const msg = try lsp.rpc.decode(lsp.rpc.LspBaseMsg, allocator, content);
         // initialize should always have an id
-        const res = lsp.initialize.respond(msg.id.?);
+        const res = lsp.initialize.respond(msg.value.id.?);
         const encoded = try lsp.rpc.encode(allocator, res);
         defer allocator.free(encoded);
         try out.writeAll(encoded);
-    } else if (std.mem.eql(u8, msg.method, "textDocument/didOpen")) {
+    } else if (std.mem.eql(u8, decoded.value.method, "textDocument/didOpen")) {
         const notif = try lsp.rpc.decode(
             lsp.textDocument.notifs.didOpenNotif,
             allocator,
@@ -117,7 +113,7 @@ pub fn handleMsg(
             notif.value.params.textDocument.text,
         );
         State.version = notif.value.params.textDocument.version;
-    } else if (std.mem.eql(u8, msg.method, "textDocument/didChange")) {
+    } else if (std.mem.eql(u8, decoded.value.method, "textDocument/didChange")) {
         const notif = try lsp.rpc.decode(
             lsp.textDocument.notifs.didChangeNotif,
             allocator,
@@ -133,7 +129,7 @@ pub fn handleMsg(
             contentChanges[contentChanges.len - 1].text,
         );
         State.version = notif.value.params.textDocument.version;
-    } else if (std.mem.eql(u8, msg.method, "textDocument/hover")) {
+    } else if (std.mem.eql(u8, decoded.value.method, "textDocument/hover")) {
         try lsp.respond(
             allocator,
             lsp.textDocument.hover,
@@ -141,10 +137,18 @@ pub fn handleMsg(
             State,
             out,
         );
-    } else if (std.mem.eql(u8, msg.method, "textDocument/definition")) {
+    } else if (std.mem.eql(u8, decoded.value.method, "textDocument/definition")) {
         try lsp.respond(
             allocator,
             lsp.textDocument.definition,
+            content,
+            State,
+            out,
+        );
+    } else if (std.mem.eql(u8, decoded.value.method, "textDocument/completion")) {
+        try lsp.respond(
+            allocator,
+            lsp.textDocument.completion,
             content,
             State,
             out,

@@ -10,6 +10,8 @@
 const char *mkstr(const std::string &s)
 {
     char *cstr = (char *)std::malloc(s.size() + 1);
+    if (!cstr)
+        return nullptr;
     std::memcpy(cstr, s.c_str(), s.size() + 1);
     return cstr;
 }

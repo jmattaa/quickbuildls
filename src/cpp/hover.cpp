@@ -8,8 +8,6 @@
 #include "parser.hpp"
 #include "quickbuildls.hpp"
 
-#include <string>
-
 struct ASTVisitOrigin
 {
     Origin operator()(Identifier const &i) { return i.origin; }

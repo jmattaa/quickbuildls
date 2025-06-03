@@ -19,6 +19,7 @@ pub const StateType = @import("../state.zig").State;
 ///   request: struct {...},
 ///   response: struct {...},
 ///   respond: fn () // the above function
+///   deinit: fn ()
 /// };
 pub fn respond(
     allocator: std.mem.Allocator,

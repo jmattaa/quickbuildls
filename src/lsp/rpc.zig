@@ -12,10 +12,14 @@ pub const LspBaseMsg = struct {
     id: ?u32 = null,
 };
 
+pub const PeekMsg = struct {
+    method: []const u8,
+};
+
 const contentlenheader = "Content-Length: ";
 const headersep = "\r\n\r\n";
 
-/// the result of this function `MUST` be freed using the same allocator that 
+/// the result of this function `MUST` be freed using the same allocator that
 /// was passed in
 pub fn encode(allocator: std.mem.Allocator, msg: anytype) ![]const u8 {
     var buf = std.ArrayList(u8).init(allocator);
