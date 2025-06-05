@@ -33,6 +33,7 @@ pub const response = struct {
 // gotta perfectly match ccompletion.quickbuildls_completion
 const completionitem = struct {
     label: []const u8,
+    kind: ?ccompletion.completion_kind = null,
     detail: ?[]const u8 = null,
     documentation: ?struct {
         kind: ?[]const u8 = null,
@@ -76,6 +77,9 @@ pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !respon
         const citem = citems[i];
 
         const label = try allocator.dupeZ(u8, std.mem.span(citem.label));
+        const kind = 
+            if (citem.kind >= 1 and citem.kind <= ccompletion.qls_compkind_TypeParameter) 
+                citem.kind else null;
         const detail = if (citem.detail != null)
             try allocator.dupeZ(
                 u8,
@@ -107,6 +111,7 @@ pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !respon
 
         items[i] = .{
             .label = label,
+            .kind = kind,
             .detail = detail,
             .documentation = documentation,
         };

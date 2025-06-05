@@ -20,6 +20,7 @@ extern "C" quickbuildls_completion *get_completions(const char *csrc, int l,
 
     q->label = mkstr("test");
     q->detail = mkstr("this is a test and this is the label for the test");
+    q->kind = qls_compkind_Variable;
 
     q->documentation =
         (decltype(q->documentation))malloc(sizeof(*q->documentation));
