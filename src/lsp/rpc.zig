@@ -60,6 +60,7 @@ pub fn decode(
 pub const SplitMsgRet = struct {
     header: []const u8,
     content: []const u8,
+    contentlen: usize,
     full_len: usize,
 };
 
@@ -91,7 +92,8 @@ pub fn splitMsg(buf: []const u8) !SplitMsgRet {
 
     return .{
         .header = header,
-        .content = content,
+        .content = content[0..len],
+        .contentlen = len,
         .full_len = header.len + headersep.len + content_len.?,
     };
 }
