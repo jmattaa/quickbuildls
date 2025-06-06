@@ -78,13 +78,15 @@ pub fn splitMsg(buf: []const u8) !SplitMsgRet {
     var it = std.mem.tokenizeSequence(u8, header, "\r\n");
     while (it.next()) |line| {
         if (std.mem.startsWith(u8, line, contentlenheader)) {
-            const len_str = line[contentlenheader.len..];
+            const len_str_raw = line[contentlenheader.len..];
+            const len_str = std.mem.trim(u8, len_str_raw, " ");
             content_len = try std.fmt.parseInt(usize, len_str, 10);
             break;
         }
     }
 
-    if (content_len == null or content.len < content_len.?)
+    const len = content_len orelse return error.WaitForMoreData;
+    if (content.len < len)
         return error.WaitForMoreData;
 
     return .{

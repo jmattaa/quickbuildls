@@ -95,6 +95,8 @@ pub fn handleMsg(
     try logger.write(allocator, "{s}", .{decoded.value.method});
     if (std.mem.eql(u8, decoded.value.method, "initialize")) {
         const msg = try lsp.rpc.decode(lsp.rpc.LspBaseMsg, allocator, content);
+        defer msg.deinit();
+
         // initialize should always have an id
         const res = lsp.initialize.respond(msg.value.id.?);
         const encoded = try lsp.rpc.encode(allocator, res);
