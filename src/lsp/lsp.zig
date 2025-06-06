@@ -8,7 +8,7 @@ pub const StateType = @import("../state.zig").State;
 /// ```zig
 /// fn respond(
 ///     allocator: std.mem.Allocator,
-///     req: Req, 
+///     req: Req,
 ///     State: StateType,
 /// ) !Res
 /// the Res.respond function should have the signature above
@@ -19,7 +19,7 @@ pub const StateType = @import("../state.zig").State;
 ///   request: struct {...},
 ///   response: struct {...},
 ///   respond: fn () // the above function
-///   deinit: fn ()
+///   deinit: fn (r: T.response, allocator: std.mem.Allocator)
 /// };
 pub fn respond(
     allocator: std.mem.Allocator,
@@ -32,6 +32,7 @@ pub fn respond(
     defer req.deinit();
 
     const res = try T.respond(allocator, req.value, State);
+    defer T.deinit(res, allocator);
     const encoded = try rpc.encode(allocator, res);
     defer allocator.free(encoded);
     try out.writeAll(encoded);

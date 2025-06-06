@@ -76,14 +76,14 @@ pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !respon
     for (0..comp_count) |i| {
         const citem = citems[i];
 
-        const label = try allocator.dupeZ(u8, std.mem.span(citem.label));
+        const label = try allocator.dupe(u8, std.mem.span(citem.label));
         const kind =
             if (citem.kind >= 1 and citem.kind <= ccompletion.qls_compkind_TypeParameter)
                 citem.kind
             else
                 null;
         const detail = if (citem.detail != null)
-            try allocator.dupeZ(
+            try allocator.dupe(
                 u8,
                 std.mem.span(citem.detail),
             )
@@ -94,14 +94,14 @@ pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !respon
             if (citem.documentation != null)
                 .{
                     .kind = if (citem.documentation.*.kind != null)
-                        try allocator.dupeZ(
+                        try allocator.dupe(
                             u8,
                             std.mem.span(citem.documentation.*.kind),
                         )
                     else
                         null,
                     .value = if (citem.documentation.*.value != null)
-                        try allocator.dupeZ(
+                        try allocator.dupe(
                             u8,
                             std.mem.span(citem.documentation.*.value),
                         )
@@ -145,6 +145,7 @@ pub fn deinit(r: response, allocator: std.mem.Allocator) void {
                         allocator.free(v);
                 }
             }
+            allocator.free(items);
         }
     }
 }

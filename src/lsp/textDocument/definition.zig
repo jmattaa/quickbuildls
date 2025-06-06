@@ -85,3 +85,8 @@ pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !respon
         },
     };
 }
+
+// not necessary for now but just to make the lsp/lsp.zig respond funciton happy
+pub fn deinit(_: response, _: std.mem.Allocator) void {
+    return;
+}

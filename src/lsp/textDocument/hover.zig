@@ -82,7 +82,7 @@ pub fn respond(
     };
 }
 
-pub fn deinitRes(res: response) void {
-    if (res.result == null) return;
-    chover.hover_md_free(@ptrCast(res.result.?.contents.value));
+pub fn deinit(r: response, _: std.mem.Allocator) void {
+    if (r.result == null) return;
+    chover.hover_md_free(@ptrCast(r.result.?.contents.value));
 }
