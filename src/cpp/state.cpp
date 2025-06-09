@@ -39,6 +39,9 @@ extern "C" void qls_state_free(qls_state *s)
 
 static void qls_state_set(qls_state *s, const char *csrc)
 {
+    if (csrc == NULL)
+        return;
+    
     std::string src(csrc);
     std::vector<unsigned char> vecsrc(src.begin(), src.end());
 

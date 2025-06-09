@@ -6,7 +6,8 @@
 #ifndef QUICKBUILDLS_STATE_H
 #define QUICKBUILDLS_STATE_H
 
-#include <cstddef>
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -40,7 +41,7 @@ extern "C"
 
         size_t ntasks;
         size_t nfields;
-    } state;
+    } qls_state;
 
     qls_state *qls_state_init(const char *csrc);
     void qls_state_update(qls_state *s, const char *csrc);
