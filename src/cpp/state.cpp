@@ -4,6 +4,7 @@
 // do as much c as possible) :)
 
 #include "state.h"
+#include "errors.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "quickbuildls.hpp"
@@ -11,7 +12,7 @@
 #include <string>
 #include <vector>
 
-static void qls_state_set(qls_state *s, const char *csrc);
+static bool qls_state_set(qls_state *s, const char *csrc);
 static void qls_free_state_but_not_state_ptr(qls_state *s);
 
 extern "C" qls_state *qls_state_init(const char *csrc)
@@ -24,8 +25,13 @@ extern "C" qls_state *qls_state_init(const char *csrc)
 
 extern "C" void qls_state_update(qls_state *s, const char *csrc)
 {
-    qls_free_state_but_not_state_ptr(s);
-    qls_state_set(s, csrc);
+    qls_state *tmp = (qls_state *)malloc(sizeof(qls_state));
+    if (qls_state_set(tmp, csrc))
+    {
+        qls_free_state_but_not_state_ptr(s);
+        *s = *tmp;
+    }
+    free(tmp);
 }
 
 extern "C" void qls_state_free(qls_state *s)
@@ -37,17 +43,27 @@ extern "C" void qls_state_free(qls_state *s)
     free(s);
 }
 
-static void qls_state_set(qls_state *s, const char *csrc)
+static bool qls_state_set(qls_state *s, const char *csrc)
 {
-    if (csrc == NULL)
-        return;
-    
+    if (!s || csrc == NULL)
+        return false;
+
     std::string src(csrc);
     std::vector<unsigned char> vecsrc(src.begin(), src.end());
 
-    Lexer lexer(vecsrc);
-    Parser parser(lexer.get_token_stream());
-    AST ast(parser.parse_tokens());
+    AST ast;
+
+    try
+    {
+        Lexer lexer(vecsrc);
+        Parser parser(lexer.get_token_stream());
+        ast = parser.parse_tokens();
+    }
+    catch (BuildException &e)
+    {
+        // TODO add a kinda s->error thing!!!!
+        return false; // early return should kepp state as is
+    }
 
     s->nfields = ast.fields.size();
     s->fields = (qls_obj *)malloc(sizeof(qls_obj) * s->nfields);
@@ -86,6 +102,8 @@ static void qls_state_set(qls_state *s, const char *csrc)
                     .c_str());
         }
     }
+
+    return true;
 }
 
 static void qls_free_state_but_not_state_ptr(qls_state *s)
