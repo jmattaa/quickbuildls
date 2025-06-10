@@ -43,7 +43,7 @@ pub const State = struct {
             s.document = null;
         }
         if (s.cstate) |state| {
-            cstate.qls_free(state);
+            cstate.qls_state_free(state);
             s.cstate = null;
         }
     }

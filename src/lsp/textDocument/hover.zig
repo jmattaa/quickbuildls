@@ -40,7 +40,7 @@ pub const response = struct {
 };
 
 pub fn respond(
-    _: std.mem.Allocator,
+    allocator: std.mem.Allocator,
     req: request,
     state: State,
 ) !response {
@@ -50,7 +50,8 @@ pub fn respond(
         .id = req.id,
     };
 
-    const md = get_hover_md(
+    const md = try get_hover_md(
+        allocator,
         state,
         document,
         req.params.position.line,
@@ -80,36 +81,96 @@ pub fn deinit(_: response, _: std.mem.Allocator) void {
     return;
 }
 
-fn get_hover_md(state: State, src: []const u8, l: u8, c: u8) ?[]const u8 {
+pub fn get_hover_md(
+    allocator: std.mem.Allocator,
+    state: State,
+    src: []const u8,
+    l: u8,
+    c: u8,
+) !?[]const u8 {
     const boffset = utils.line_char_to_offset(src, l, c);
 
     if (state.cstate) |s| {
-        for (0..s.nfields, s.fields) |_, f|
-            if (utils.in_range(boffset, f.offset, f.name))
-                return "### Variable: `" ++ f.name ++ "`";
+        for (0..s.nfields) |i| {
+            const f = s.fields[i];
+            if (utils.in_range(
+                boffset,
+                f.offset,
+                std.mem.span(f.name),
+            )) {
+                return try std.fmt.allocPrint(
+                    allocator,
+                    "### Variable: `{s}`",
+                    .{std.mem.span(f.name)},
+                );
+            }
+        }
 
-        for (0..s.ntasks, s.tasks) |_, t| {
-            for (0..t.nfields, t.fields) |_, f| {
-                var dependencies: ?[*c]u8 = null;
-                if (std.mem.eql(u8, f.name, "depends")) {
-                    dependencies = f.value;
+        for (0..s.ntasks) |i| {
+            const t = s.tasks[i];
+            var dependencies: ?[]const u8 = null;
 
-                    if (utils.in_range(boffset, f.offset, f.name))
-                        return "### Task: `" ++ t.name ++
-                            ("` depends on:\n---`" ++ dependencies) ++
-                            ("`\n the dependency list is the list of tasks that should be run before this task");
-                } else if (std.mem.eql(u8, f.name, "run"))
-                    if (utils.in_range(boffset, f.offset, f.name))
+            for (0..t.nfields) |j| {
+                const f = t.fields[j];
+
+                if (std.mem.eql(u8, std.mem.span(f.name), "depends")) {
+                    dependencies = std.mem.span(f.value);
+
+                    if (utils.in_range(
+                        boffset,
+                        f.offset,
+                        std.mem.span(f.name),
+                    )) {
+                        return try std.fmt.allocPrint(
+                            allocator,
+                            "### Task: `{s}`\n---\n`{s}`\nThe dependency list is the list of tasks that should be run before this task",
+                            .{ std.mem.span(t.name), dependencies.? },
+                        );
+                    }
+                } else if (std.mem.eql(u8, std.mem.span(f.name), "run")) {
+                    if (utils.in_range(
+                        boffset,
+                        f.offset,
+                        std.mem.span(f.name),
+                    )) {
                         return "### Run \n---\n The command this task will run";
+                    }
+                }
 
-                if (utils.in_range(boffset, f.offset, f.name)) {
-                    return "### Field: `" ++ f.name ++ "`";
+                if (utils.in_range(
+                    boffset,
+                    f.offset,
+                    std.mem.span(f.name),
+                )) {
+                    return try std.fmt.allocPrint(
+                        allocator,
+                        "### Field: `{s}`",
+                        .{std.mem.span(f.name)},
+                    );
                 }
             }
 
-            if (utils.in_range(boffset, t.offset, t.name))
-                return "### Task: `" ++ t.name ++ "`" ++
-                    (if (t.description.len > 0) "\n---\n" ++ t.description else "");
+            if (utils.in_range(
+                boffset,
+                t.offset,
+                std.mem.span(t.name),
+            )) {
+                if (dependencies) |deps| {
+                    return try std.fmt.allocPrint(
+                        allocator,
+                        "### Task: `{s}`\n#### Depends on:\n---\n{s}",
+                        .{
+                            std.mem.span(t.name), deps,
+                        },
+                    );
+                } else {
+                    return try std.fmt.allocPrint(
+                        allocator,
+                        "### Task: `{s}`",
+                        .{std.mem.span(t.name)},
+                    );
+                }
+            }
         }
     }
 
