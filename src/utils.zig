@@ -23,10 +23,9 @@ pub fn cut(arr: []const u8, sep: []const u8) CutError![2][]const u8 {
 // note the <= in the begining and < in the end!
 pub fn in_range(x: usize, offsetcint: c_int, content: []const u8) bool {
     const offset: usize = @intCast(offsetcint);
-    if (offset == std.math.maxInt(usize)) return false;
+    if (offset < content.len or offset == std.math.maxInt(usize)) return false;
 
-    const end = offset + content.len;
-    return x >= offset and x < end;
+    return offset - content.len <= x and x < offset;
 }
 pub fn line_char_to_offset(s: []const u8, l: usize, c: usize) usize {
     var off: usize = 0;

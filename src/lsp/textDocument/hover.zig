@@ -115,17 +115,19 @@ pub fn get_hover_md(
 
                 if (std.mem.eql(u8, std.mem.span(f.name), "depends")) {
                     dependencies = std.mem.span(f.value);
-
                     if (utils.in_range(
                         boffset,
                         f.offset,
                         std.mem.span(f.name),
                     )) {
-                        return try std.fmt.allocPrint(
-                            allocator,
-                            "### Task: `{s}`\n---\n`{s}`\nThe dependency list is the list of tasks that should be run before this task",
-                            .{ std.mem.span(t.name), dependencies.? },
-                        );
+                        if (dependencies) |deps| {
+                            return try std.fmt.allocPrint(
+                                allocator,
+                                "### Dependency list: `{s}`\n---\nthe dependency list is the list of tasks that should be run before this task",
+                                .{deps},
+                            );
+                        }
+                        return "### Dependency list\n---\nthe dependency list is the list of tasks that should be run before this task";
                     }
                 } else if (std.mem.eql(u8, std.mem.span(f.name), "run")) {
                     if (utils.in_range(
@@ -133,7 +135,7 @@ pub fn get_hover_md(
                         f.offset,
                         std.mem.span(f.name),
                     )) {
-                        return "### Run \n---\n The command this task will run";
+                        return "### Run \n---\nThe command this task will run";
                     }
                 }
 
@@ -146,6 +148,25 @@ pub fn get_hover_md(
                         allocator,
                         "### Field: `{s}`",
                         .{std.mem.span(f.name)},
+                    );
+                }
+
+                if (utils.in_range(
+                    boffset,
+                    t.offset,
+                    std.mem.span(t.name),
+                )) {
+                    return try std.fmt.allocPrint(
+                        allocator,
+                        "### Task: `{s}`\n---\n{s}",
+                        .{ std.mem.span(t.name), (if (dependencies) |deps|
+                            try std.fmt.allocPrint(
+                                allocator,
+                                "#### depends on `{s}`",
+                                .{deps},
+                            )
+                        else
+                            "") },
                     );
                 }
             }
