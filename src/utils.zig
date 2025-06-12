@@ -49,8 +49,7 @@ pub fn offset_to_line_char(s: []const u8, off: usize) [2]u32 {
     var c: u32 = 0;
     for (0..off) |i| {
         c += 1;
-        if (s[i] == '\n')
-        {
+        if (s[i] == '\n') {
             l += 1;
             c = 0;
         }
@@ -65,5 +64,30 @@ pub fn is_alphabetic(c: u8) bool {
 
 // a wrapper around the c function
 pub fn is_keyword(s: []const u8) bool {
-    return if (quickbuildls.is_keyword(s.ptr) == 1) true else false;
+    if (s.len >= 128) return false; // why would you have a so long name 😭
+
+    var buf: [128]u8 = undefined;
+    std.mem.copyForwards(u8, buf[0..s.len], s);
+    buf[s.len] = 0; // null terminate it
+
+    return if (quickbuildls.is_keyword(buf[0 .. s.len + 1].ptr) == 1) true else false;
+}
+
+pub fn get_ident(
+    src: []const u8,
+    off: usize,
+) error{NotFound}![]const u8 {
+    var start = off;
+    while (start > 0 and is_alphabetic(src[start - 1]))
+        start -= 1;
+    var end = off;
+    while (end < src.len and is_alphabetic(src[end]))
+        end += 1;
+
+    const ident = if (start < end)
+        src[start..end]
+    else
+        return error.NotFound;
+
+    return ident;
 }

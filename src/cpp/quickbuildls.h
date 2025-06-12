@@ -7,5 +7,6 @@
 uint is_alphabetic(char x);
 
 uint is_keyword(const char *s);
+const char *get_keyword_desc(const char *k);
 
 #endif

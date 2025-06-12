@@ -4,6 +4,10 @@ const Logger = @import("logger.zig").Logger;
 const lsp = @import("lsp/lsp.zig");
 const state = @import("state.zig");
 
+const quickbuildls = @cImport({
+    @cInclude("quickbuildls.h");
+});
+
 var State: state.State = undefined;
 
 const debug = @import("builtin").mode == .Debug;

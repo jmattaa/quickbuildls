@@ -98,9 +98,8 @@ pub fn get_hover_md(
 
     const ident = try utils.get_ident(src, boffset);
     if (utils.is_keyword(ident)) {
-        const indent_cstr = try allocator.dupeZ(u8, ident);
-        defer allocator.free(indent_cstr);
-        return std.mem.span(quickbuildls.get_keyword_desc(indent_cstr));
+        std.io.getStdErr().writeAll(quickbuildls.get_keyword_desc(ident.ptr)) catch {};
+        return std.mem.span(quickbuildls.get_keyword_desc(ident.ptr));
     }
 
     if (state.cstate) |s| {

@@ -100,18 +100,7 @@ fn get_definition(
     if (boffset >= src.len)
         return;
 
-    var start = boffset;
-    while (start > 0 and utils.is_alphabetic(src[start - 1]))
-        start -= 1;
-    var end = boffset;
-    while (end < src.len and utils.is_alphabetic(src[end]))
-        end += 1;
-
-    const ident = if (start < end)
-        src[start..end]
-    else
-        return error.NotFound;
-
+    const ident = try utils.get_ident(src, boffset);
     if (utils.is_keyword(ident))
         return error.NotFound;
 
