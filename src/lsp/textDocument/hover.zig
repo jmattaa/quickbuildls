@@ -83,8 +83,10 @@ pub fn respond(
     };
 }
 
-pub fn deinit(_: response, _: std.mem.Allocator) void {
-    return;
+pub fn deinit(res: response, allocator: std.mem.Allocator) void {
+    if (res.result) |r| {
+        allocator.free(r.contents.value);
+    }
 }
 
 pub fn get_hover_md(
@@ -100,7 +102,10 @@ pub fn get_hover_md(
     if (utils.is_keyword(ident)) {
         const indent_cstr = try allocator.dupeZ(u8, ident);
         defer allocator.free(indent_cstr);
-        return std.mem.span(quickbuildls.get_keyword_desc(indent_cstr));
+        return try allocator.dupe(
+            u8,
+            std.mem.span(quickbuildls.get_keyword_desc(indent_cstr)),
+        );
     }
 
     if (state.cstate) |s| {
