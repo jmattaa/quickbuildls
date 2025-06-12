@@ -1,36 +1,37 @@
 const std = @import("std");
 
-pub const completion_kind = enum(u8) {
-    Text = 1,
-    Method = 2,
-    Function = 3,
-    Constructor = 4,
-    Field = 5,
-    Variable = 6,
-    Class = 7,
-    Interface = 8,
-    Module = 9,
-    Property = 10,
-    Unit = 11,
-    Value = 12,
-    Enum = 13,
-    Keyword = 14,
-    Snippet = 15,
-    Color = 16,
-    File = 17,
-    Reference = 18,
-    Folder = 19,
-    EnumMember = 20,
-    Constant = 21,
-    Struct = 22,
-    Event = 23,
-    Operator = 24,
-    TypeParameter = 25,
-};
+// ain't an enum cuz they be annoying 
+// TODO: checkout how zig works with enums or maybe eventually declare it in
+// c???
+pub const COMPLETION_Text = 1;
+pub const COMPLETION_Method = 2;
+pub const COMPLETION_Function = 3;
+pub const COMPLETION_Constructor = 4;
+pub const COMPLETION_Field = 5;
+pub const COMPLETION_Variable = 6;
+pub const COMPLETION_Class = 7;
+pub const COMPLETION_Interface = 8;
+pub const COMPLETION_Module = 9;
+pub const COMPLETION_Property = 10;
+pub const COMPLETION_Unit = 11;
+pub const COMPLETION_Value = 12;
+pub const COMPLETION_Enum = 13;
+pub const COMPLETION_Keyword = 14;
+pub const COMPLETION_Snippet = 15;
+pub const COMPLETION_Color = 16;
+pub const COMPLETION_File = 17;
+pub const COMPLETION_Reference = 18;
+pub const COMPLETION_Folder = 19;
+pub const COMPLETION_EnumMember = 20;
+pub const COMPLETION_Constant = 21;
+pub const COMPLETION_Struct = 22;
+pub const COMPLETION_Event = 23;
+pub const COMPLETION_Operator = 24;
+pub const COMPLETION_TypeParameter = 25;
 
 pub const completionitem = struct {
     label: []const u8,
-    kind: completion_kind = completion_kind.Text,
+    kind: ?u8 = null,
     detail: ?[]const u8 = null,
     documentation: ?struct {
         kind: ?[]const u8 = null,
@@ -43,7 +44,6 @@ pub fn getCompletions(
     src: []const u8,
     l: u8,
     c: u8,
-    count: *u8,
 ) ![]completionitem {
     _ = src;
     _ = l;
@@ -55,8 +55,8 @@ pub fn getCompletions(
     try items.append(
         .{
             .label = "test",
+            .kind = COMPLETION_Variable,
             .detail = "this is a test and this is the label for the test",
-            .kind = completion_kind.Variable,
             .documentation = .{
                 .kind = "markdown",
                 .value = "## this is a markdown test\n--\ntesting markdown",
@@ -64,22 +64,12 @@ pub fn getCompletions(
         },
     );
 
-    count.* = 1;
-
-    return items.toOwnedSlice();
+    return try items.toOwnedSlice();
 }
 
-pub fn deinit(allocator: std.mem.Allocator, items: []completionitem) void {
-    for (items) |i| {
-        allocator.free(i.label);
-        if (i.detail) |d|
-            allocator.free(d);
-        if (i.documentation) |doc| {
-            if (doc.kind) |k|
-                allocator.free(k);
-            if (doc.value) |v|
-                allocator.free(v);
-        }
-    }
+pub fn deinit(
+    allocator: std.mem.Allocator,
+    items: []completionitem,
+) void {
     allocator.free(items);
 }

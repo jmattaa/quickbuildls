@@ -34,13 +34,11 @@ pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !respon
         .id = req.id,
     };
 
-    var nitems: u8 = 0;
     const items = try computils.getCompletions(
         allocator,
         document,
         req.params.position.line,
         req.params.position.character,
-        &nitems,
     );
 
     return .{
@@ -56,18 +54,7 @@ pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !respon
 pub fn deinit(r: response, allocator: std.mem.Allocator) void {
     if (r.result) |res| {
         if (res.items) |items| {
-            for (items) |i| {
-                allocator.free(i.label);
-                if (i.detail) |d|
-                    allocator.free(d);
-                if (i.documentation) |doc| {
-                    if (doc.kind) |k|
-                        allocator.free(k);
-                    if (doc.value) |v|
-                        allocator.free(v);
-                }
-            }
-            allocator.free(items);
+            computils.deinit(allocator, items);
         }
     }
 }
