@@ -86,8 +86,13 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         t->type = QLS_TASK;
         t->offset = get_origin_index(ast.tasks[i].origin);
 
-        t->name = strdup(
-            std::visit(ASTVisitContent{}, ast.tasks[i].identifier).c_str());
+        std::string tname =
+            std::visit(ASTVisitContent{}, ast.tasks[i].identifier);
+        t->name = strdup(tname.c_str());
+
+        // for some reason the quoted strings offset is always wrong by one 😭
+        if(src[t->offset - tname.size() - 1] != '\n')
+            t->offset -= 1;
 
         t->nfields = ast.tasks[i].fields.size();
         t->fields = (qls_obj *)malloc(sizeof(qls_obj) * t->nfields);
