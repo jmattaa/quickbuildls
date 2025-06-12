@@ -1,4 +1,4 @@
-// this code does not come from https://github.com/nordtechtiger/quickbuild
+// this code does NOT come from https://github.com/nordtechtiger/quickbuild
 // rather it's a part of the quickbuildls project to bridge the c++ code to zig
 // (I suck att c++ so if there is problems then blame me, i'll also be trying to
 // do as much c as possible) :)

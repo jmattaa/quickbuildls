@@ -12,8 +12,8 @@ pub const request = struct {
             uri: []const u8,
         },
         position: struct {
-            line: u8,
-            character: u8,
+            line: u32,
+            character: u32,
         },
     },
 };

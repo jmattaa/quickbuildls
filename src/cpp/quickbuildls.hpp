@@ -16,8 +16,6 @@ size_t get_origin_index(const Origin &origin);
 bool in_range(size_t x, size_t offset, std::string content);
 void get_origin_line_char(const Origin &origin, const std::string &src,
                           int *line, int *character);
-// defined in lexer.cpp
-bool is_alphabetic(char x);
 
 bool is_keyword(const std::string &s);
 

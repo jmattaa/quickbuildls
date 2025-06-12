@@ -28,7 +28,8 @@
 #include <variant>
 
 // used for determining e.g. variable names.
-inline bool is_alphabetic(char x) {
+// just a small tweak to be able to use it from zig, I added the extern "C"
+extern "C" uint is_alphabetic(char x) {
   return ((x >= 'A') && (x <= 'Z')) || ((x >= 'a') && (x <= 'z')) || x == '_' ||
          x == '-' || (x >= '0' && x <= '9');
 }

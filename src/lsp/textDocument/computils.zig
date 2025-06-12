@@ -42,8 +42,8 @@ pub const completionitem = struct {
 pub fn getCompletions(
     allocator: std.mem.Allocator,
     src: []const u8,
-    l: u8,
-    c: u8,
+    l: u32,
+    c: u32,
 ) ![]completionitem {
     _ = src;
     _ = l;

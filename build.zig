@@ -27,28 +27,32 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibC();
 
     const cppflags = [_][]const u8{"--std=c++17"};
+    const cflags = [_][]const u8{};
 
     var dirIterator = dir.iterate();
     while (try dirIterator.next()) |entry| {
-        const path = try std.fs.path.join(
-            allocator,
-            &.{ "src/cpp", entry.name },
-        );
+        const is_cpp = std.mem.endsWith(u8, entry.name, ".cpp");
+        const is_c = std.mem.endsWith(u8, entry.name, ".c");
+        if (!is_cpp and !is_c) continue;
+
+        const path = try std.fs.path.join(allocator, &.{
+            "src/cpp",
+            entry.name,
+        });
         defer allocator.free(path);
-        if (std.mem.endsWith(u8, entry.name, ".cpp")) {
-            exe.addCSourceFile(
-                .{
-                    .flags = &cppflags,
-                    .language = .cpp,
-                    .file = .{
-                        .src_path = .{
-                            .owner = b,
-                            .sub_path = path,
-                        },
-                    },
+
+        const flags = if (is_cpp) &cppflags else &cflags;
+
+        exe.addCSourceFile(.{
+            .flags = flags,
+            .language = if (is_cpp) .cpp else .c,
+            .file = .{
+                .src_path = .{
+                    .owner = b,
+                    .sub_path = path,
                 },
-            );
-        }
+            },
+        });
     }
 
     // -----------------------------------------------------------------------

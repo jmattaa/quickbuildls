@@ -11,8 +11,8 @@ pub const request = struct {
             uri: []const u8,
         },
         position: struct {
-            line: u8,
-            character: u8,
+            line: u32,
+            character: u32,
         },
     },
 };
@@ -28,12 +28,12 @@ pub const response = struct {
         },
         range: ?struct {
             start: struct {
-                line: u8,
-                character: u8,
+                line: u32,
+                character: u32,
             },
             end: struct {
-                line: u8,
-                character: u8,
+                line: u32,
+                character: u32,
             },
         } = null,
     } = null,
@@ -85,8 +85,8 @@ pub fn get_hover_md(
     allocator: std.mem.Allocator,
     state: State,
     src: []const u8,
-    l: u8,
-    c: u8,
+    l: u32,
+    c: u32,
 ) !?[]const u8 {
     const boffset = utils.line_char_to_offset(src, l, c);
 
