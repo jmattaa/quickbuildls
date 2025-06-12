@@ -1,10 +1,6 @@
 const std = @import("std");
-
+const utils = @import("../../utils.zig");
 const State = @import("../../state.zig").State;
-
-const chover = @cImport({
-    @cInclude("hover.h");
-});
 
 pub const request = struct {
     jsonrpc: []const u8,
@@ -15,8 +11,8 @@ pub const request = struct {
             uri: []const u8,
         },
         position: struct {
-            line: c_int,
-            character: c_int,
+            line: u32,
+            character: u32,
         },
     },
 };
@@ -32,12 +28,12 @@ pub const response = struct {
         },
         range: ?struct {
             start: struct {
-                line: c_int,
-                character: c_int,
+                line: u32,
+                character: u32,
             },
             end: struct {
-                line: c_int,
-                character: c_int,
+                line: u32,
+                character: u32,
             },
         } = null,
     } = null,
@@ -54,23 +50,22 @@ pub fn respond(
         .id = req.id,
     };
 
-    const c_src = try allocator.dupeZ(u8, document); // null-terminated
-    defer allocator.free(c_src);
-
-    const md: [*c]const u8 = chover.get_hover_md(
-        c_src,
+    const md = try get_hover_md(
+        allocator,
+        state,
+        document,
         req.params.position.line,
         req.params.position.character,
     );
 
-    if (md != null) {
+    if (md) |val| {
         return .{
             .jsonrpc = "2.0",
             .id = req.id,
             .result = .{
                 .contents = .{
                     .kind = "markdown",
-                    .value = std.mem.span(md), // cstr to zig str
+                    .value = val,
                 },
             },
         };
@@ -82,7 +77,123 @@ pub fn respond(
     };
 }
 
-pub fn deinit(r: response, _: std.mem.Allocator) void {
-    if (r.result == null) return;
-    chover.hover_md_free(@ptrCast(r.result.?.contents.value));
+pub fn deinit(_: response, _: std.mem.Allocator) void {
+    return;
+}
+
+pub fn get_hover_md(
+    allocator: std.mem.Allocator,
+    state: State,
+    src: []const u8,
+    l: u32,
+    c: u32,
+) !?[]const u8 {
+    const boffset = utils.line_char_to_offset(src, l, c);
+
+    if (state.cstate) |s| {
+        for (0..s.nfields) |i| {
+            const f = s.fields[i];
+            if (utils.in_range(
+                boffset,
+                f.offset,
+                std.mem.span(f.name),
+            )) {
+                return try std.fmt.allocPrint(
+                    allocator,
+                    "### Variable: `{s}`",
+                    .{std.mem.span(f.name)},
+                );
+            }
+        }
+
+        for (0..s.ntasks) |i| {
+            const t = s.tasks[i];
+            var dependencies: ?[]const u8 = null;
+
+            for (0..t.nfields) |j| {
+                const f = t.fields[j];
+
+                if (std.mem.eql(u8, std.mem.span(f.name), "depends")) {
+                    dependencies = std.mem.span(f.value);
+                    if (utils.in_range(
+                        boffset,
+                        f.offset,
+                        std.mem.span(f.name),
+                    )) {
+                        if (dependencies) |deps| {
+                            return try std.fmt.allocPrint(
+                                allocator,
+                                "### Dependency list: `{s}`\n---\nthe dependency list is the list of tasks that should be run before this task",
+                                .{deps},
+                            );
+                        }
+                        return "### Dependency list\n---\nthe dependency list is the list of tasks that should be run before this task";
+                    }
+                } else if (std.mem.eql(u8, std.mem.span(f.name), "run")) {
+                    if (utils.in_range(
+                        boffset,
+                        f.offset,
+                        std.mem.span(f.name),
+                    )) {
+                        return "### Run \n---\nThe command this task will run";
+                    }
+                }
+
+                if (utils.in_range(
+                    boffset,
+                    f.offset,
+                    std.mem.span(f.name),
+                )) {
+                    return try std.fmt.allocPrint(
+                        allocator,
+                        "### Field: `{s}`",
+                        .{std.mem.span(f.name)},
+                    );
+                }
+
+                if (utils.in_range(
+                    boffset,
+                    t.offset,
+                    std.mem.span(t.name),
+                )) {
+                    return try std.fmt.allocPrint(
+                        allocator,
+                        "### Task: `{s}`\n---\n{s}",
+                        .{ std.mem.span(t.name), (if (dependencies) |deps|
+                            try std.fmt.allocPrint(
+                                allocator,
+                                "#### depends on `{s}`",
+                                .{deps},
+                            )
+                        else
+                            "") },
+                    );
+                }
+            }
+
+            if (utils.in_range(
+                boffset,
+                t.offset,
+                std.mem.span(t.name),
+            )) {
+                if (dependencies) |deps| {
+                    return try std.fmt.allocPrint(
+                        allocator,
+                        "### Task: `{s}`\n#### Depends on:\n---\n{s}",
+                        .{
+                            std.mem.span(t.name), deps,
+                        },
+                    );
+                } else {
+                    return try std.fmt.allocPrint(
+                        allocator,
+                        "### Task: `{s}`",
+                        .{std.mem.span(t.name)},
+                    );
+                }
+            }
+        }
+    }
+
+    return null;
 }

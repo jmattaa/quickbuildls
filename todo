@@ -1,1 +1,3 @@
-- [ ] change the code to let c and cpp to handle all the lexing and parsing of the state but then hand over to zig to take care of the generation of the content for the lsp response. (right now it's c or cpp that handles the generation of the lsp response change that to let it hand down the state to zig in a nice way, to optimize and make it nicer to work with)
+- [ ] HANDLE THE ERRORS!!!! 
+- [x] migrate completions from cpp to zig
+- [x] migrate definitions from cpp to zig
