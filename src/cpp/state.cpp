@@ -15,6 +15,7 @@
 
 static bool qls_state_set(qls_state *s, const char *csrc);
 static void qls_free_state_but_not_state_ptr(qls_state *s);
+static void qls_free_s_err(qls_err *e);
 
 extern "C" qls_state *qls_state_init(const char *csrc)
 {
@@ -31,7 +32,6 @@ extern "C" void qls_state_update(qls_state *s, const char *csrc)
     {
         qls_free_state_but_not_state_ptr(s);
         *s = *tmp;
-        free(tmp);
 
         return;
     }
@@ -39,14 +39,14 @@ extern "C" void qls_state_update(qls_state *s, const char *csrc)
     // we've got an error
     if (tmp->err)
     {
-        if (s->err)
-            free(s->err); // clean up any old error string
-        s->err = strdup(tmp->err);
+        qls_free_s_err(s->err);
+        s->err = (qls_err *)calloc(1, sizeof(qls_err));
+        s->err->msg = strdup(tmp->err->msg);
+        s->err->offset = tmp->err->offset;
     }
     else
     {
-        if (s->err)
-            free(s->err);
+        qls_free_s_err(s->err);
         s->err = NULL; // explicitly clear error if none set
     }
 
@@ -84,11 +84,13 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         auto err = ErrorHandler::peek_error();
         if (err)
         {
-            if (s->err)
-                free(s->err);
-            s->err = strdup(err->message.c_str());
+            qls_free_s_err(s->err);
+            s->err = (qls_err *)calloc(1, sizeof(qls_err));
+            s->err->msg = strdup(err->message.c_str());
+            if (err->context.stream_pos)
+                s->err->offset = err->context.stream_pos->index;
         }
-        return false; // early return should kepp state as is
+        return false; // early return should keep state as is
     }
 
     s->nfields = ast.fields.size();
@@ -142,7 +144,6 @@ static void qls_free_state_but_not_state_ptr(qls_state *s)
     if (!s)
         return;
 
-    s->err ? free(s->err) : (void)0;
     for (int i = 0; i < s->nfields; i++)
     {
         qls_obj *f = &s->fields[i];
@@ -165,4 +166,14 @@ static void qls_free_state_but_not_state_ptr(qls_state *s)
         }
         t->fields ? free(t->fields) : (void)0;
     }
+
+    qls_free_s_err(s->err);
+}
+
+static void qls_free_s_err(qls_err *e)
+{
+    if (!e)
+        return;
+    e->msg ? free(e->msg) : (void)0;
+    free(e);
 }

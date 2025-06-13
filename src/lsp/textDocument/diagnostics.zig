@@ -1,7 +1,9 @@
 const std = @import("std");
+
+const State = @import("../../state.zig").State;
+const utils = @import("../../utils.zig");
 const lsputils = @import("../lsputils.zig");
 const rpc = @import("../rpc.zig");
-const State = @import("../../state.zig").State;
 
 // once again this could be a c enum cuz zig enums idk they be annoying
 pub const DIAGNOSTIC_Error = 1;
@@ -33,26 +35,36 @@ pub fn trypush(
     version: ?i64,
     out: anytype,
 ) !void {
+    if (state.document == null) return;
     // TODO get error from the State
     if (state.cstate) |cs| {
         var d = std.ArrayList(diagnostics).init(allocator);
 
         if (cs.err) |e|
-            try d.append(.{
-                .range = lsputils.range{
-                    .start = lsputils.position{
-                        .line = 0,
-                        .character = 0,
+            if (e.*.msg) |msg| {
+                const lchar = utils.offset_to_line_char(
+                    state.document.?,
+                    e.*.offset,
+                );
+                const line = lchar[0];
+                const char = lchar[1];
+
+                try d.append(.{
+                    .range = lsputils.range{
+                        .start = lsputils.position{
+                            .line = line,
+                            .character = char,
+                        },
+                        .end = lsputils.position{
+                            .line = line,
+                            .character = char,
+                        },
                     },
-                    .end = lsputils.position{
-                        .line = 0,
-                        .character = 0,
-                    },
-                },
-                .severity = DIAGNOSTIC_Error,
-                .source = "quickbuildls",
-                .message = std.mem.span(e),
-            });
+                    .severity = DIAGNOSTIC_Error,
+                    .source = "quickbuildls",
+                    .message = std.mem.span(msg),
+                });
+            };
 
         const dnotif = notif{
             .jsonrpc = "2.0",

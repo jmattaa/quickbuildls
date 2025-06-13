@@ -7,6 +7,7 @@
 #define QUICKBUILDLS_STATE_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -26,12 +27,18 @@ extern "C"
         int offset;
 
         char *value; // only if type is QLS_FIELD else use fields and depends
-        struct qls_obj *fields;  // only if type is QLS_TASK
-                                 //
-                                 // dependencies are as a string in the depends 
-                                 // field
+        struct qls_obj *fields; // only if type is QLS_TASK
+                                //
+                                // dependencies are as a string in the depends
+                                // field
         size_t nfields;
     } qls_obj;
+
+    typedef struct qls_err
+    {
+        char *msg;
+        size_t offset;
+    } qls_err;
 
     // resembles the AST object in quickbuild
     typedef struct qls_state
@@ -42,10 +49,10 @@ extern "C"
         size_t ntasks;
         size_t nfields;
 
-        char *err;
+        qls_err *err;
         // TODO: implement something like this
         // size_t nerr;
-        // const char **errs;
+        // qls_err **errs;
     } qls_state;
 
     qls_state *qls_state_init(const char *csrc);

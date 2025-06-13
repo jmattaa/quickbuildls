@@ -1,5 +1,6 @@
-- [ ] HANDLE THE ERRORS!!!! 
 - [ ] actually do completions
+- [ ] get the errors to show correctly with line and char
+- [x] HANDLE THE ERRORS!!!! 
 - [x] add doctype comments thingy to hover 
 - [x] migrate completions from cpp to zig
 - [x] migrate definitions from cpp to zig
