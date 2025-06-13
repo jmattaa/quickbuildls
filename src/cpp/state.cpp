@@ -32,12 +32,26 @@ extern "C" void qls_state_update(qls_state *s, const char *csrc)
         qls_free_state_but_not_state_ptr(s);
         *s = *tmp;
         free(tmp);
+
+        return;
+    }
+
+    // we've got an error
+    if (tmp->err)
+    {
+        if (s->err)
+            free(s->err); // clean up any old error string
+        s->err = strdup(tmp->err);
     }
     else
     {
-        qls_free_state_but_not_state_ptr(tmp);
-        free(tmp);
+        if (s->err)
+            free(s->err);
+        s->err = NULL; // explicitly clear error if none set
     }
+
+    qls_free_state_but_not_state_ptr(tmp);
+    free(tmp);
 }
 
 extern "C" void qls_state_free(qls_state *s)
@@ -67,8 +81,13 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     }
     catch (BuildException &e)
     {
-        if (s->err) free(s->err);
-        s->err = strdup(e.what());
+        auto err = ErrorHandler::peek_error();
+        if (err)
+        {
+            if (s->err)
+                free(s->err);
+            s->err = strdup(err->message.c_str());
+        }
         return false; // early return should kepp state as is
     }
 
@@ -98,7 +117,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         t->name = strdup(tname.c_str());
 
         // for some reason the quoted strings offset is always wrong by one 😭
-        if(src[t->offset - tname.size() - 1] != '\n')
+        if (src[t->offset - tname.size() - 1] != '\n')
             t->offset -= 1;
 
         t->nfields = ast.tasks[i].fields.size();

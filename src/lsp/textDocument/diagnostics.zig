@@ -37,7 +37,7 @@ pub fn trypush(
     if (state.cstate) |cs| {
         var d = std.ArrayList(diagnostics).init(allocator);
 
-        if (cs.err != null)
+        if (cs.err) |e|
             try d.append(.{
                 .range = lsputils.range{
                     .start = lsputils.position{
@@ -51,7 +51,7 @@ pub fn trypush(
                 },
                 .severity = DIAGNOSTIC_Error,
                 .source = "quickbuildls",
-                .message = std.mem.span(cs.err),
+                .message = std.mem.span(e),
             });
 
         const dnotif = notif{
