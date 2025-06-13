@@ -9,6 +9,7 @@
 #include "parser.hpp"
 #include "quickbuildls.hpp"
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -17,7 +18,7 @@ static void qls_free_state_but_not_state_ptr(qls_state *s);
 
 extern "C" qls_state *qls_state_init(const char *csrc)
 {
-    qls_state *s = (qls_state *)malloc(sizeof(qls_state));
+    qls_state *s = (qls_state *)calloc(1, sizeof(qls_state));
     qls_state_set(s, csrc);
 
     return s;
@@ -25,13 +26,18 @@ extern "C" qls_state *qls_state_init(const char *csrc)
 
 extern "C" void qls_state_update(qls_state *s, const char *csrc)
 {
-    qls_state *tmp = (qls_state *)malloc(sizeof(qls_state));
+    qls_state *tmp = (qls_state *)calloc(1, sizeof(qls_state));
     if (qls_state_set(tmp, csrc))
     {
         qls_free_state_but_not_state_ptr(s);
         *s = *tmp;
+        free(tmp);
     }
-    free(tmp);
+    else
+    {
+        qls_free_state_but_not_state_ptr(tmp);
+        free(tmp);
+    }
 }
 
 extern "C" void qls_state_free(qls_state *s)
@@ -66,7 +72,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     }
 
     s->nfields = ast.fields.size();
-    s->fields = (qls_obj *)malloc(sizeof(qls_obj) * s->nfields);
+    s->fields = (qls_obj *)calloc(s->nfields, sizeof(qls_obj));
     for (int i = 0; i < s->nfields; i++)
     {
         qls_obj *f = &s->fields[i];
@@ -79,7 +85,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     }
 
     s->ntasks = ast.tasks.size();
-    s->tasks = (qls_obj *)malloc(sizeof(qls_obj) * s->ntasks);
+    s->tasks = (qls_obj *)calloc(s->ntasks, sizeof(qls_obj));
     for (int i = 0; i < s->ntasks; i++)
     {
         qls_obj *t = &s->tasks[i];
@@ -95,7 +101,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
             t->offset -= 1;
 
         t->nfields = ast.tasks[i].fields.size();
-        t->fields = (qls_obj *)malloc(sizeof(qls_obj) * t->nfields);
+        t->fields = (qls_obj *)calloc(t->nfields, sizeof(qls_obj));
         for (int j = 0; j < t->nfields; j++)
         {
             qls_obj *f = &t->fields[j];
@@ -115,6 +121,7 @@ static void qls_free_state_but_not_state_ptr(qls_state *s)
 {
     if (!s)
         return;
+
     for (int i = 0; i < s->nfields; i++)
     {
         qls_obj *f = &s->fields[i];
