@@ -41,6 +41,11 @@ extern "C"
 
         size_t ntasks;
         size_t nfields;
+
+        const char *err;
+        // TODO: implement something like this
+        // size_t nerr;
+        // const char **errs;
     } qls_state;
 
     qls_state *qls_state_init(const char *csrc);

@@ -61,7 +61,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     }
     catch (BuildException &e)
     {
-        // TODO add a kinda s->error thing!!!!
+        s->err = e.what();
         return false; // early return should kepp state as is
     }
 

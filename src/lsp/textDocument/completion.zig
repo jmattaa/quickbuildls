@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const State = @import("../../state.zig").State;
+const lsputils = @import("../lsputils.zig");
 const computils = @import("computils.zig");
 
 pub const request = struct {
@@ -11,10 +12,7 @@ pub const request = struct {
         textDocument: struct {
             uri: []const u8,
         },
-        position: struct {
-            line: u32,
-            character: u32,
-        },
+        position: lsputils.position,
     },
 };
 

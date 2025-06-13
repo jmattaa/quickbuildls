@@ -2,6 +2,7 @@ const std = @import("std");
 
 const State = @import("../../state.zig").State;
 const utils = @import("../../utils.zig");
+const lsputils = @import("../lsputils.zig");
 
 const quickbuildls = @cImport({
     @cInclude("quickbuildls.h");
@@ -15,10 +16,7 @@ pub const request = struct {
         textDocument: struct {
             uri: []const u8,
         },
-        position: struct {
-            line: u32,
-            character: u32,
-        },
+        position: lsputils.position,
     },
 };
 
@@ -31,16 +29,7 @@ pub const response = struct {
             kind: []const u8,
             value: []const u8,
         },
-        range: ?struct {
-            start: struct {
-                line: u32,
-                character: u32,
-            },
-            end: struct {
-                line: u32,
-                character: u32,
-            },
-        } = null,
+        range: ?lsputils.range = null,
     } = null,
 };
 
@@ -216,7 +205,7 @@ fn get_doc_cmt(
         try cmts.insert(0, l[j..]);
 
         if (lstart == 0) break;
-        i = lstart; 
+        i = lstart;
     }
 
     if (cmts.items.len == 0) return null;

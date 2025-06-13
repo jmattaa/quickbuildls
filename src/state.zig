@@ -1,4 +1,5 @@
 const std = @import("std");
+
 const cstate = @cImport({
     @cInclude("state.h");
 });
@@ -24,17 +25,18 @@ pub const State = struct {
         s: *State,
         allocator: std.mem.Allocator,
         data: []const u8,
+        version: u32,
     ) !void {
         // free old document
-        if (s.document) |doc| {
+        if (s.document) |doc|
             allocator.free(doc);
-        }
 
         // my dumbass thought that dupe dosent allocate memory
         s.document = try allocator.dupe(u8, data);
-        if (s.document) |doc| {
+        if (s.document) |doc|
             cstate.qls_state_update(s.cstate, doc.ptr);
-        }
+
+        s.version = version;
     }
 
     pub fn deinit(s: *State, allocator: std.mem.Allocator) void {

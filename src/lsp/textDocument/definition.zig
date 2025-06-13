@@ -2,6 +2,7 @@ const std = @import("std");
 
 const State = @import("../../state.zig").State;
 const utils = @import("../../utils.zig");
+const lsputils = @import("../lsputils.zig");
 
 pub const request = struct {
     jsonrpc: []const u8,
@@ -11,10 +12,7 @@ pub const request = struct {
         textDocument: struct {
             uri: []const u8,
         },
-        position: struct {
-            line: u32,
-            character: u32,
-        },
+        position: lsputils.position,
     },
 };
 
@@ -23,16 +21,7 @@ pub const response = struct {
     id: u32,
     result: ?struct {
         uri: []const u8,
-        range: struct {
-            start: struct {
-                line: u32,
-                character: u32,
-            },
-            end: struct {
-                line: u32,
-                character: u32,
-            },
-        },
+        range: lsputils.range,
     } = null,
 };
 

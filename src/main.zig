@@ -117,8 +117,15 @@ pub fn handleMsg(
         try State.setDocument(
             allocator,
             notif.value.params.textDocument.text,
+            notif.value.params.textDocument.version,
         );
-        State.version = notif.value.params.textDocument.version;
+        try lsp.textDocument.diagnostics.trypush(
+            allocator,
+            State,
+            notif.value.params.textDocument.uri,
+            notif.value.params.textDocument.version,
+            out,
+        );
     } else if (std.mem.eql(u8, decoded.value.method, "textDocument/didChange")) {
         const notif = try lsp.rpc.decode(
             lsp.textDocument.notifs.didChangeNotif,
@@ -133,8 +140,15 @@ pub fn handleMsg(
         try State.setDocument(
             allocator,
             contentChanges[contentChanges.len - 1].text,
+            notif.value.params.textDocument.version,
         );
-        State.version = notif.value.params.textDocument.version;
+        try lsp.textDocument.diagnostics.trypush(
+            allocator,
+            State,
+            notif.value.params.textDocument.uri,
+            notif.value.params.textDocument.version,
+            out,
+        );
     } else if (std.mem.eql(u8, decoded.value.method, "textDocument/hover")) {
         try lsp.respond(
             allocator,
