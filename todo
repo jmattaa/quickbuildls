@@ -1,4 +1,4 @@
-- [ ] add doctype comments thingy to hover 
+- [x] add doctype comments thingy to hover 
 - [ ] HANDLE THE ERRORS!!!! 
 - [x] migrate completions from cpp to zig
 - [x] migrate definitions from cpp to zig
