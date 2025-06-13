@@ -34,23 +34,25 @@ pub fn trypush(
     out: anytype,
 ) !void {
     // TODO get error from the State
-    if (state.cstate) |_| {
+    if (state.cstate) |cs| {
         var d = std.ArrayList(diagnostics).init(allocator);
-        try d.append(.{
-            .range = lsputils.range{
-                .start = lsputils.position{
-                    .line = 0,
-                    .character = 0,
+
+        if (cs.err != null)
+            try d.append(.{
+                .range = lsputils.range{
+                    .start = lsputils.position{
+                        .line = 0,
+                        .character = 0,
+                    },
+                    .end = lsputils.position{
+                        .line = 0,
+                        .character = 0,
+                    },
                 },
-                .end = lsputils.position{
-                    .line = 0,
-                    .character = 0,
-                },
-            },
-            .severity = DIAGNOSTIC_Error,
-            .source = "quickbuildls",
-            .message = "Error",
-        });
+                .severity = DIAGNOSTIC_Error,
+                .source = "quickbuildls",
+                .message = std.mem.span(cs.err),
+            });
 
         const dnotif = notif{
             .jsonrpc = "2.0",

@@ -67,7 +67,8 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     }
     catch (BuildException &e)
     {
-        s->err = e.what();
+        if (s->err) free(s->err);
+        s->err = strdup(e.what());
         return false; // early return should kepp state as is
     }
 
@@ -122,6 +123,7 @@ static void qls_free_state_but_not_state_ptr(qls_state *s)
     if (!s)
         return;
 
+    s->err ? free(s->err) : (void)0;
     for (int i = 0; i < s->nfields; i++)
     {
         qls_obj *f = &s->fields[i];
