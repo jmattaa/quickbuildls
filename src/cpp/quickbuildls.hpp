@@ -9,6 +9,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 #include <string>
+#include <variant>
 
 size_t get_origin_index(const Origin &origin);
 
@@ -20,7 +21,15 @@ struct ASTVisitContent
     {
         if (fl.contents.empty())
             return "";
-        return std::visit(ASTVisitContent{}, fl.contents.front());
+        std::string res;
+        for (auto &item : fl.contents)
+        {
+            if (std::holds_alternative<Identifier>(item))
+                res += "[" + std::visit(ASTVisitContent{}, item) + "]";
+            else
+                res += std::visit(ASTVisitContent{}, item);
+        }
+        return res;
     }
 
     std::string operator()(List const &l)
@@ -39,12 +48,23 @@ struct ASTVisitContent
         return b.content ? "true" : "false";
     }
 
-    // idk what this is tho
     std::string operator()(Replace const &r)
     {
-        if (!r.replacement)
-            return "";
-        return std::visit(ASTVisitContent{}, *r.replacement);
+        std::string res = "";
+        if (r.identifier)
+        {
+            res += std::visit(ASTVisitContent{}, *(r.identifier));
+            res += ": ";
+        }
+        if (r.original)
+        {
+            res += std::visit(ASTVisitContent{}, *(r.original));
+            res += " -> ";
+        }
+        if (r.replacement)
+            res += std::visit(ASTVisitContent{}, *(r.replacement));
+
+        return res;
     }
 };
 

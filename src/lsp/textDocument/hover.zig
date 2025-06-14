@@ -1,12 +1,18 @@
 const std = @import("std");
 
 const State = @import("../../state.zig").State;
+const cstate_s = @cImport({
+    @cInclude("state.h");
+});
+
 const utils = @import("../../utils.zig");
 const lsputils = @import("../lsputils.zig");
 
 const quickbuildls = @cImport({
     @cInclude("quickbuildls.h");
 });
+
+const MAX_FIELD_HOVER_VALUE_LEN: usize = 40;
 
 pub const request = struct {
     jsonrpc: []const u8,
@@ -90,36 +96,12 @@ pub fn get_hover_md(
     const boffset = utils.line_char_to_offset(src, l, c);
 
     const ident = try utils.get_ident(src, boffset);
-    if (utils.is_keyword(ident)) {
-        const indent_cstr = try allocator.dupeZ(u8, ident);
-        defer allocator.free(indent_cstr);
-        return try allocator.dupe(
-            u8,
-            std.mem.span(quickbuildls.get_keyword_desc(indent_cstr)),
-        );
-    }
 
     if (state.cstate) |s| {
         for (0..s.nfields) |i| {
             const f = s.fields[i];
-            if (std.mem.eql(u8, std.mem.span(f.name), ident)) {
-                const doc = try get_doc_cmt(allocator, src, @intCast(f.offset));
-                defer if (doc) |d| allocator.free(d);
-
-                var res = std.ArrayList(u8).init(allocator);
-                defer res.deinit();
-
-                if (doc) |d| {
-                    try res.appendSlice(d);
-                    try res.appendSlice("\n---\n");
-                }
-
-                try res.appendSlice("## Field: `");
-                try res.appendSlice(std.mem.span(f.name));
-                try res.appendSlice("`");
-
-                return try res.toOwnedSlice();
-            }
+            if (std.mem.eql(u8, std.mem.span(f.name), ident))
+                return try get_field_hover(allocator, f, ident, src);
         }
 
         for (0..s.ntasks) |i| {
@@ -128,17 +110,16 @@ pub fn get_hover_md(
 
             for (0..t.nfields) |j| {
                 const f = t.fields[j];
-
-                if (std.mem.eql(u8, std.mem.span(f.name), "depends"))
+                const fname = std.mem.span(f.name);
+                if (std.mem.eql(u8, fname, "depends"))
                     dependencies = std.mem.span(f.value);
 
-                if (std.mem.eql(u8, std.mem.span(f.name), ident)) {
-                    return try std.fmt.allocPrint(
-                        allocator,
-                        "## Field: `{s}`",
-                        .{std.mem.span(f.name)},
-                    );
-                }
+                if (std.mem.eql(u8, fname, ident)
+                // the fields inside a task shouldn't show hover info
+                // unless the cursor is on them, this will make it so that
+                // we keep the fields in a task inside of that scope 🔥
+                and utils.in_range(boffset, f.offset, fname))
+                    return try get_field_hover(allocator, f, ident, src);
             }
 
             if (std.mem.eql(u8, std.mem.span(t.name), ident)) {
@@ -169,6 +150,58 @@ pub fn get_hover_md(
     }
 
     return null;
+}
+
+fn get_field_hover(
+    allocator: std.mem.Allocator,
+    f: cstate_s.qls_obj,
+    ident: []const u8,
+    src: []const u8,
+) !?[]const u8 {
+    if (utils.is_keyword(ident)) {
+        const indent_cstr = try allocator.dupeZ(u8, ident);
+        defer allocator.free(indent_cstr);
+        return try allocator.dupe(
+            u8,
+            std.mem.span(quickbuildls.get_keyword_desc(indent_cstr)),
+        );
+    }
+
+    const doc = try get_doc_cmt(
+        allocator,
+        src,
+        @intCast(f.offset),
+    );
+    defer if (doc) |d| allocator.free(d);
+
+    var res = std.ArrayList(u8).init(allocator);
+    defer res.deinit();
+
+    if (doc) |d| {
+        try res.appendSlice(d);
+        try res.appendSlice("\n---\n");
+    }
+
+    try res.appendSlice("## Field: `");
+    try res.appendSlice(std.mem.span(f.name));
+    try res.appendSlice("`");
+
+    if (f.value) |val| {
+        const v = std.mem.span(val);
+
+        try res.appendSlice("\n---\n**Value:** `");
+
+        if (v.len > MAX_FIELD_HOVER_VALUE_LEN) {
+            try res.appendSlice(v[0..MAX_FIELD_HOVER_VALUE_LEN]);
+            try res.appendSlice("...");
+        } else {
+            try res.appendSlice(v);
+        }
+
+        try res.appendSlice("`");
+    }
+
+    return try res.toOwnedSlice();
 }
 
 fn get_doc_cmt(
