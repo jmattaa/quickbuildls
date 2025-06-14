@@ -91,3 +91,44 @@ pub fn get_ident(
 
     return ident;
 }
+
+pub fn get_doc_cmt(
+    allocator: std.mem.Allocator,
+    src: []const u8,
+    off: usize,
+) !?[]const u8 {
+    var cmts = std.ArrayList([]const u8).init(allocator);
+    defer cmts.deinit();
+
+    // go to the line above
+    var line_start = off;
+    while (line_start > 0 and src[line_start - 1] != '\n') : (line_start -= 1) {}
+    if (line_start == 0) return null;
+
+    var i = line_start - 1;
+
+    while (i > 0) : (i -= 1) {
+        const lend = i;
+        var lstart = i;
+        while (lstart > 0 and src[lstart - 1] != '\n') : (lstart -= 1) {}
+        const l = src[lstart..lend];
+
+        // skip whitespace
+        var j: usize = 0;
+
+        while (j < l.len and (l[j] == ' ' or l[j] == '\t')) : (j += 1) {}
+        if (j >= l.len or l[j] != '#') break;
+        j += 1; // skip the '#'
+        // skip whitespace
+        while (j < l.len and (l[j] == ' ' or l[j] == '\t')) : (j += 1) {}
+        if (j >= l.len) break;
+
+        try cmts.insert(0, l[j..]);
+
+        if (lstart == 0) break;
+        i = lstart;
+    }
+
+    if (cmts.items.len == 0) return null;
+    return try std.mem.join(allocator, "\n", cmts.items);
+}

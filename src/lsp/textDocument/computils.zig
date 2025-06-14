@@ -1,7 +1,12 @@
 const std = @import("std");
-const State = @import("../../state.zig").State;
 
-// ain't an enum cuz they be annoying 
+const State = @import("../../state.zig").State;
+const utils = @import("../../utils.zig");
+
+const cstate_s = @cImport({
+    @cInclude("state.h");
+});
+// ain't an enum cuz they be annoying
 // TODO: checkout how zig works with enums or maybe eventually declare it in
 // c???
 pub const COMPLETION_Text = 1;
@@ -47,25 +52,46 @@ pub fn getCompletions(
     l: u32,
     c: u32,
 ) ![]completionitem {
-    _ = src;
     _ = l;
     _ = c;
-    _ = state;
 
     var items = std.ArrayList(completionitem).init(allocator);
     defer items.deinit();
 
-    try items.append(
-        .{
-            .label = "test",
-            .kind = COMPLETION_Variable,
-            .detail = "this is a test and this is the label for the test",
-            .documentation = .{
-                .kind = "markdown",
-                .value = "## this is a markdown test\n--\ntesting markdown",
-            },
-        },
-    );
+    if (state.cstate) |s| {
+        for (0..s.nfields) |i| {
+            const comp = try get_field_completion(
+                allocator,
+                s.fields[i],
+                src,
+            );
+            if (comp) |cmp| try items.append(cmp);
+        }
+
+        for (0..s.ntasks) |i| {
+            const t = s.tasks[i];
+            try items.append(.{
+                .label = std.mem.span(t.name),
+                .kind = COMPLETION_Function,
+                .documentation = .{
+                    .kind = "markdown",
+                    .value = try utils.get_doc_cmt(
+                        allocator,
+                        src,
+                        @intCast(t.offset),
+                    ),
+                },
+            });
+            for (0..t.nfields) |j| {
+                const comp = try get_field_completion(
+                    allocator,
+                    t.fields[j],
+                    src,
+                );
+                if (comp) |cmp| try items.append(cmp);
+            }
+        }
+    }
 
     return try items.toOwnedSlice();
 }
@@ -75,4 +101,25 @@ pub fn deinit(
     items: []completionitem,
 ) void {
     allocator.free(items);
+}
+
+fn get_field_completion(
+    allocator: std.mem.Allocator,
+    f: cstate_s.qls_obj,
+    src: []const u8,
+) !?completionitem {
+    if (utils.is_keyword(std.mem.span(f.name))) return null;
+    return .{
+        .label = std.mem.span(f.name),
+        .kind = COMPLETION_Field,
+        .detail = std.mem.span(f.value),
+        .documentation = .{
+            .kind = "markdown",
+            .value = try utils.get_doc_cmt(
+                allocator,
+                src,
+                @intCast(f.offset),
+            ),
+        },
+    };
 }
