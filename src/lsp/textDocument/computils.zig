@@ -1,4 +1,5 @@
 const std = @import("std");
+const State = @import("../../state.zig").State;
 
 // ain't an enum cuz they be annoying 
 // TODO: checkout how zig works with enums or maybe eventually declare it in
@@ -41,6 +42,7 @@ pub const completionitem = struct {
 
 pub fn getCompletions(
     allocator: std.mem.Allocator,
+    state: State,
     src: []const u8,
     l: u32,
     c: u32,
@@ -48,6 +50,7 @@ pub fn getCompletions(
     _ = src;
     _ = l;
     _ = c;
+    _ = state;
 
     var items = std.ArrayList(completionitem).init(allocator);
     defer items.deinit();

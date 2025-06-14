@@ -34,6 +34,7 @@ pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !respon
 
     const items = try computils.getCompletions(
         allocator,
+        state,
         document,
         req.params.position.line,
         req.params.position.character,
