@@ -56,7 +56,22 @@ pub fn getCompletions(
     defer items.deinit();
 
     if (state.cstate) |s| {
-        if (cursor_in_brackets(src, l, c)) {
+        const off = utils.line_char_to_offset(src, l, c);
+
+        if (cursor_in_brackets(src, off)) {
+            if (find_enclosing_task(src, off)) |tname| {
+                if (utils.get_task_by_name(s, tname)) |t| {
+                    for (0..t.nfields) |i| {
+                        const comp = try get_field_completion(
+                            allocator,
+                            t.fields[i],
+                            src,
+                        );
+                        if (comp) |cmp| try items.append(cmp);
+                    }
+                }
+            }
+
             for (0..s.nfields) |i| {
                 const comp = try get_field_completion(
                     allocator,
@@ -102,8 +117,7 @@ fn get_field_completion(
     };
 }
 
-fn cursor_in_brackets(src: []const u8, l: u32, c: u32) bool {
-    const off = utils.line_char_to_offset(src, l, c);
+fn cursor_in_brackets(src: []const u8, off: usize) bool {
     if (off == 0 or off > src.len) return false;
 
     var i: usize = off - 1;
@@ -113,4 +127,22 @@ fn cursor_in_brackets(src: []const u8, l: u32, c: u32) bool {
         i -= 1;
     }
     return false;
+}
+
+// scan backward for "task_name" {
+// TODO IMPROVE THIS TO WORK WITH THE "task_name as smth"
+fn find_enclosing_task(src: []const u8, off: usize) ?[]const u8 {
+    var i: usize = off;
+    while (i > 0) : (i -= 1) {
+        if (src[i] == '{') {
+            var j: usize = i;
+            while (j > 0 and src[j] != '"') : (j -= 1) {}
+            while (j > 0 and src[j - 1] != '\n') : (j -= 1) {}
+            if (src[j] == '"') {
+                const end = std.mem.indexOf(u8, src[j + 1 .. i], "\"") orelse return null;
+                return src[j + 1 .. j + 1 + end]; // task name
+            }
+        }
+    }
+    return null;
 }

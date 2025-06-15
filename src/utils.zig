@@ -1,5 +1,10 @@
 const std = @import("std");
 
+const State = @import("state.zig").State;
+
+const cstate_s = @cImport({
+    @cInclude("state.h");
+});
 const quickbuildls = @cImport({
     @cInclude("quickbuildls.h");
 });
@@ -131,4 +136,17 @@ pub fn get_doc_cmt(
 
     if (cmts.items.len == 0) return null;
     return try std.mem.join(allocator, "\n", cmts.items);
+}
+
+pub fn get_task_by_name(
+    s: *cstate_s.qls_state,
+    name: []const u8,
+) ?cstate_s.qls_obj {
+    for (0..s.ntasks) |i| {
+        if (std.mem.eql(u8, std.mem.span(s.tasks[i].name), name)) {
+            return s.tasks[i];
+        }
+    }
+
+    return null;
 }
