@@ -52,40 +52,15 @@ pub fn getCompletions(
     l: u32,
     c: u32,
 ) ![]completionitem {
-    _ = l;
-    _ = c;
-
     var items = std.ArrayList(completionitem).init(allocator);
     defer items.deinit();
 
     if (state.cstate) |s| {
-        for (0..s.nfields) |i| {
-            const comp = try get_field_completion(
-                allocator,
-                s.fields[i],
-                src,
-            );
-            if (comp) |cmp| try items.append(cmp);
-        }
-
-        for (0..s.ntasks) |i| {
-            const t = s.tasks[i];
-            try items.append(.{
-                .label = std.mem.span(t.name),
-                .kind = COMPLETION_Function,
-                .documentation = .{
-                    .kind = "markdown",
-                    .value = try utils.get_doc_cmt(
-                        allocator,
-                        src,
-                        @intCast(t.offset),
-                    ),
-                },
-            });
-            for (0..t.nfields) |j| {
+        if (cursor_in_brackets(src, l, c)) {
+            for (0..s.nfields) |i| {
                 const comp = try get_field_completion(
                     allocator,
-                    t.fields[j],
+                    s.fields[i],
                     src,
                 );
                 if (comp) |cmp| try items.append(cmp);
@@ -100,6 +75,9 @@ pub fn deinit(
     allocator: std.mem.Allocator,
     items: []completionitem,
 ) void {
+    for (items) |i| if (i.documentation) |doc|
+        if (doc.value) |v| allocator.free(v);
+
     allocator.free(items);
 }
 
@@ -122,4 +100,17 @@ fn get_field_completion(
             ),
         },
     };
+}
+
+fn cursor_in_brackets(src: []const u8, l: u32, c: u32) bool {
+    const off = utils.line_char_to_offset(src, l, c);
+    if (off == 0 or off > src.len) return false;
+
+    var i: usize = off - 1;
+    while (i > 0) {
+        if (src[i] == ']' or src[i] == '\n') return false;
+        if (src[i] == '[') return true;
+        i -= 1;
+    }
+    return false;
 }
