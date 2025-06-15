@@ -29,14 +29,14 @@ pub fn cut(arr: []const u8, sep: []const u8) CutError![2][]const u8 {
 // cuz the offset is at the end of the decl for a task or a feild so the range
 // should be (offset - size <= x < offset)
 // note the <= in the begining and < in the end!
-pub fn in_range(x: usize, offsetcint: c_int, content: []const u8) bool {
+pub fn isInRange(x: usize, offsetcint: c_int, content: []const u8) bool {
     const offset: usize = @intCast(offsetcint);
     if (offset < content.len or offset == std.math.maxInt(usize)) return false;
 
     return offset - content.len <= x and x < offset;
 }
 
-pub fn line_char_to_offset(s: []const u8, l: u32, c: u32) usize {
+pub fn lineCharToOffset(s: []const u8, l: u32, c: u32) usize {
     var off: usize = 0;
     var cline: u32 = 0;
     while (off < s.len) {
@@ -49,7 +49,7 @@ pub fn line_char_to_offset(s: []const u8, l: u32, c: u32) usize {
     return off + c;
 }
 
-pub fn offset_to_line_char(s: []const u8, off: usize) [2]u32 {
+pub fn offsetToLineChar(s: []const u8, off: usize) [2]u32 {
     var l: u32 = 0;
     var c: u32 = 0;
     for (0..off) |i| {
@@ -63,12 +63,12 @@ pub fn offset_to_line_char(s: []const u8, off: usize) [2]u32 {
 }
 
 // a wrapper around the c function
-pub fn is_alphabetic(c: u8) bool {
+pub fn isAlphabetic(c: u8) bool {
     return if (quickbuildls.is_alphabetic(c) == 1) true else false;
 }
 
 // a wrapper around the c function
-pub fn is_keyword(s: []const u8) bool {
+pub fn isKeyword(s: []const u8) bool {
     if (s.len >= 128) return false; // why would you have a so long name 😭
 
     var buf: [128]u8 = undefined;
@@ -78,15 +78,15 @@ pub fn is_keyword(s: []const u8) bool {
     return if (quickbuildls.is_keyword(buf[0 .. s.len + 1].ptr) == 1) true else false;
 }
 
-pub fn get_ident(
+pub fn getIndent(
     src: []const u8,
     off: usize,
 ) error{NotFound}![]const u8 {
     var start = off;
-    while (start > 0 and is_alphabetic(src[start - 1]))
+    while (start > 0 and isAlphabetic(src[start - 1]))
         start -= 1;
     var end = off;
-    while (end < src.len and is_alphabetic(src[end]))
+    while (end < src.len and isAlphabetic(src[end]))
         end += 1;
 
     const ident = if (start < end)
@@ -97,7 +97,7 @@ pub fn get_ident(
     return ident;
 }
 
-pub fn get_doc_cmt(
+pub fn getDocCmt(
     allocator: std.mem.Allocator,
     src: []const u8,
     off: usize,
@@ -138,7 +138,7 @@ pub fn get_doc_cmt(
     return try std.mem.join(allocator, "\n", cmts.items);
 }
 
-pub fn get_task_by_name(
+pub fn getTaskByName(
     s: *cstate_s.qls_state,
     name: []const u8,
 ) ?cstate_s.qls_obj {

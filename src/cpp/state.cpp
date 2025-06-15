@@ -10,6 +10,7 @@
 #include "quickbuildls.hpp"
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -116,16 +117,23 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         t->type = QLS_TASK;
         t->offset = get_origin_index(ast.tasks[i].origin);
 
+        bool iter_has_value = ast.tasks[i].iterator.content != "__task__";
+        if (iter_has_value)
+            t->value = strdup(ast.tasks[i].iterator.content.c_str());
+
         std::string tname =
             std::visit(ASTVisitContent{}, ast.tasks[i].identifier);
+
+        // value is set -> iterator -> name not quoted
+        // value is not set -> iterator -> name quoted
+        if (!iter_has_value)
+            tname = "\"" + tname + "\"";
+
         t->name = strdup(tname.c_str());
 
         // for some reason the quoted strings offset is always wrong by one 😭
         if (src[t->offset - tname.size() - 1] != '\n')
             t->offset -= 1;
-
-        if (ast.tasks[i].iterator.content.size() > 0)
-            t->value = strdup(ast.tasks[i].iterator.content.c_str());
 
         t->nfields = ast.tasks[i].fields.size();
         t->fields = (qls_obj *)calloc(t->nfields, sizeof(qls_obj));

@@ -56,11 +56,11 @@ pub fn getCompletions(
     defer items.deinit();
 
     if (state.cstate) |s| {
-        const off = utils.line_char_to_offset(src, l, c);
+        const off = utils.lineCharToOffset(src, l, c);
 
-        if (cursor_in_brackets(src, off)) {
+        if (is_cursor_in_brackets(src, off)) {
             if (find_enclosing_task(src, off)) |tname| {
-                if (utils.get_task_by_name(s, tname)) |t| {
+                if (utils.getTaskByName(s, tname)) |t| {
                     // iterator
                     if (t.value) |v| {
                         try items.append(.{
@@ -89,6 +89,22 @@ pub fn getCompletions(
                 );
                 if (comp) |cmp| try items.append(cmp);
             }
+        } else if (is_cursor_in_depends(src, off)) {
+            for (0..s.ntasks) |i| {
+                const t = s.tasks[i];
+                try items.append(.{
+                    .label = std.mem.span(t.name),
+                    .kind = COMPLETION_Function,
+                    .documentation = .{
+                        .kind = "markdown",
+                        .value = try utils.getDocCmt(
+                            allocator,
+                            src,
+                            @intCast(t.offset),
+                        ),
+                    },
+                });
+            }
         }
     }
 
@@ -110,14 +126,14 @@ fn get_field_completion(
     f: cstate_s.qls_obj,
     src: []const u8,
 ) !?completionitem {
-    if (utils.is_keyword(std.mem.span(f.name))) return null;
+    if (utils.isKeyword(std.mem.span(f.name))) return null;
     return .{
         .label = std.mem.span(f.name),
         .kind = COMPLETION_Field,
         .detail = std.mem.span(f.value),
         .documentation = .{
             .kind = "markdown",
-            .value = try utils.get_doc_cmt(
+            .value = try utils.getDocCmt(
                 allocator,
                 src,
                 @intCast(f.offset),
@@ -126,7 +142,7 @@ fn get_field_completion(
     };
 }
 
-fn cursor_in_brackets(src: []const u8, off: usize) bool {
+fn is_cursor_in_brackets(src: []const u8, off: usize) bool {
     if (off == 0 or off > src.len) return false;
 
     var i: usize = off - 1;
@@ -169,4 +185,13 @@ fn find_enclosing_task(src: []const u8, off: usize) ?[]const u8 {
         }
     }
     return null;
+}
+
+fn is_cursor_in_depends(src: []const u8, off: usize) bool {
+    var line_start: usize = off;
+    while (line_start > 0 and src[line_start - 1] != '\n') : (line_start -= 1) {}
+
+    const line = src[line_start..@min(src.len, line_start + 64)];
+    return std.mem.indexOf(u8, line, "depends") != null and
+        std.mem.indexOf(u8, line, "=") != null;
 }
