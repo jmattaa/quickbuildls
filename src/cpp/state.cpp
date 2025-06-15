@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#define noop (void)0
+
 static bool qls_state_set(qls_state *s, const char *csrc);
 static void qls_free_state_but_not_state_ptr(qls_state *s);
 static void qls_free_s_err(qls_err *e);
@@ -122,6 +124,9 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         if (src[t->offset - tname.size() - 1] != '\n')
             t->offset -= 1;
 
+        if (ast.tasks[i].iterator.content.size() > 0)
+            t->value = strdup(ast.tasks[i].iterator.content.c_str());
+
         t->nfields = ast.tasks[i].fields.size();
         t->fields = (qls_obj *)calloc(t->nfields, sizeof(qls_obj));
         for (int j = 0; j < t->nfields; j++)
@@ -148,23 +153,24 @@ static void qls_free_state_but_not_state_ptr(qls_state *s)
     {
         qls_obj *f = &s->fields[i];
 
-        f->name ? free(f->name) : (void)0;
-        f->value ? free(f->value) : (void)0;
+        f->name ? free(f->name) : noop;
+        f->value ? free(f->value) : noop;
     }
-    s->fields ? free(s->fields) : (void)0;
+    s->fields ? free(s->fields) : noop;
 
     for (int i = 0; i < s->ntasks; i++)
     {
         qls_obj *t = &s->tasks[i];
-        t->name ? free(t->name) : (void)0;
+        t->name ? free(t->name) : noop;
+        t->value ? free(t->value) : noop;
 
         for (int j = 0; j < t->nfields; j++)
         {
             qls_obj *f = &t->fields[j];
-            f->name ? free(f->name) : (void)0;
-            f->value ? free(f->value) : (void)0;
+            f->name ? free(f->name) : noop;
+            f->value ? free(f->value) : noop;
         }
-        t->fields ? free(t->fields) : (void)0;
+        t->fields ? free(t->fields) : noop;
     }
 
     qls_free_s_err(s->err);
@@ -174,6 +180,6 @@ static void qls_free_s_err(qls_err *e)
 {
     if (!e)
         return;
-    e->msg ? free(e->msg) : (void)0;
+    e->msg ? free(e->msg) : noop;
     free(e);
 }

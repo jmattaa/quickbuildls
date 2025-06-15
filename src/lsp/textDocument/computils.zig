@@ -61,6 +61,15 @@ pub fn getCompletions(
         if (cursor_in_brackets(src, off)) {
             if (find_enclosing_task(src, off)) |tname| {
                 if (utils.get_task_by_name(s, tname)) |t| {
+                    // iterator
+                    if (t.value) |v| {
+                        try items.append(.{
+                            .label = std.mem.span(v),
+                            .kind = COMPLETION_Variable,
+                        });
+                    }
+
+                    // local fields
                     for (0..t.nfields) |i| {
                         const comp = try get_field_completion(
                             allocator,
@@ -130,18 +139,33 @@ fn cursor_in_brackets(src: []const u8, off: usize) bool {
 }
 
 // scan backward for "task_name" {
-// TODO IMPROVE THIS TO WORK WITH THE "task_name as smth"
 fn find_enclosing_task(src: []const u8, off: usize) ?[]const u8 {
     var i: usize = off;
     while (i > 0) : (i -= 1) {
         if (src[i] == '{') {
             var j: usize = i;
-            while (j > 0 and src[j] != '"') : (j -= 1) {}
-            while (j > 0 and src[j - 1] != '\n') : (j -= 1) {}
+
+            while (j > 0 and std.ascii.isWhitespace(src[j - 1])) : (j -= 1) {}
+
             if (src[j] == '"') {
-                const end = std.mem.indexOf(u8, src[j + 1 .. i], "\"") orelse return null;
-                return src[j + 1 .. j + 1 + end]; // task name
+                // it's the `"name" {` pattern
+                var k = j - 1;
+                while (k > 0 and src[k] != '"') : (k -= 1) {}
+                return src[k + 1 .. j - 1];
             }
+
+            // check for the `name as smth` pattern
+            const line_start = blk: {
+                var k = j;
+                while (k > 0 and src[k - 1] != '\n') : (k -= 1) {}
+                break :blk k;
+            };
+
+            const line = src[line_start..j];
+            const as_index = std.mem.indexOf(u8, line, " as ") orelse return null;
+            const before_as = std.mem.trimRight(u8, line[0..as_index], " ");
+
+            return if (before_as.len > 0) before_as else null;
         }
     }
     return null;
