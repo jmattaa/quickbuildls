@@ -3,6 +3,10 @@ const std = @import("std");
 const State = @import("../../state.zig").State;
 const utils = @import("../../utils.zig");
 
+const quickbuildls = @cImport({
+    @cInclude("quickbuildls.h");
+});
+
 const cstate_s = @cImport({
     @cInclude("state.h");
 });
@@ -35,6 +39,9 @@ pub const COMPLETION_Event = 23;
 pub const COMPLETION_Operator = 24;
 pub const COMPLETION_TypeParameter = 25;
 
+pub const INSERTTEXTFORMAT_PlainText = 1;
+pub const INSERTTEXTFORMAT_Snippet = 2;
+
 pub const completionitem = struct {
     label: []const u8,
     kind: ?u8 = null,
@@ -43,6 +50,8 @@ pub const completionitem = struct {
         kind: ?[]const u8 = null,
         value: ?[]const u8 = null,
     } = null,
+    insertTextFormat: ?u8 = null,
+    insertText: ?[]const u8 = null,
 };
 
 pub fn getCompletions(
@@ -105,6 +114,21 @@ pub fn getCompletions(
                     },
                 });
             }
+        } else if (is_cursor_in_task(src, off)) {
+            for (quickbuildls.task_keyword_names) |kw| {
+                try items.append(
+                    .{
+                        .label = std.mem.span(kw),
+                        .kind = COMPLETION_Snippet,
+                        .insertTextFormat = INSERTTEXTFORMAT_Snippet,
+                        .insertText = try std.fmt.allocPrint(
+                            allocator,
+                            "{s} = $1;",
+                            .{kw},
+                        ),
+                    },
+                );
+            }
         }
     }
 
@@ -115,8 +139,10 @@ pub fn deinit(
     allocator: std.mem.Allocator,
     items: []completionitem,
 ) void {
-    for (items) |i| if (i.documentation) |doc|
-        if (doc.value) |v| allocator.free(v);
+    for (items) |i| {
+        if (i.documentation) |doc| if (doc.value) |v| allocator.free(v);
+        if (i.insertText) |v| allocator.free(v);
+    }
 
     allocator.free(items);
 }
@@ -194,4 +220,14 @@ fn is_cursor_in_depends(src: []const u8, off: usize) bool {
     const line = src[line_start..@min(src.len, line_start + 64)];
     return std.mem.indexOf(u8, line, "depends") != null and
         std.mem.indexOf(u8, line, "=") != null;
+}
+
+fn is_cursor_in_task(src: []const u8, off: usize) bool {
+    var i: usize = off - 1;
+    while (i > 0) {
+        if (src[i] == '}') return false;
+        if (src[i] == '{') return true;
+        i -= 1;
+    }
+    return false;
 }
