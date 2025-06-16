@@ -93,7 +93,7 @@ pub fn getCompletions(
             for (0..s.ntasks) |i| {
                 const t = s.tasks[i];
                 try items.append(.{
-                    .label = std.mem.span(t.name),
+                    .label = std.mem.span(if (t.quotedname) |q| q else t.name),
                     .kind = COMPLETION_Function,
                     .documentation = .{
                         .kind = "markdown",

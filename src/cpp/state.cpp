@@ -127,7 +127,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         // value is set -> iterator -> name not quoted
         // value is not set -> iterator -> name quoted
         if (!iter_has_value)
-            tname = "\"" + tname + "\"";
+            t->quotedname = strdup(("\"" + tname + "\"").c_str());
 
         t->name = strdup(tname.c_str());
 
@@ -171,6 +171,7 @@ static void qls_free_state_but_not_state_ptr(qls_state *s)
         qls_obj *t = &s->tasks[i];
         t->name ? free(t->name) : noop;
         t->value ? free(t->value) : noop;
+        t->quotedname ? free(t->quotedname) : noop;
 
         for (int j = 0; j < t->nfields; j++)
         {
