@@ -81,8 +81,12 @@ pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
             // do some stuff with buf so we get the leftovers
             // and remove what we used
             const leftover = buf.items[msg.full_len..];
+            const leftover_cpy = try allocator.alloc(u8, leftover.len);
+            defer allocator.free(leftover_cpy);
+            @memcpy(leftover_cpy, leftover);
+
             try buf.resize(0);
-            try buf.appendSlice(leftover);
+            try buf.appendSlice(leftover_cpy);
         }
     }
 }

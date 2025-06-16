@@ -30,7 +30,6 @@ extern "C"
         //
         // `QLS_TASK`: `if` the task contains an iterator it will be the iterator
         char *value;
-        // `QLS_TASK`
         char *quotedname; 
         struct qls_obj *fields; // only if type is QLS_TASK
                                 //

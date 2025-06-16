@@ -105,6 +105,8 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         f->offset = get_origin_index(ast.fields[i].origin);
 
         f->name = strdup(ast.fields[i].identifier.content.c_str());
+        f->quotedname =
+            strdup(("\"" + ast.fields[i].identifier.content + "\"").c_str());
         f->value = strdup(
             std::visit(ASTVisitContent{}, ast.fields[i].expression).c_str());
     }

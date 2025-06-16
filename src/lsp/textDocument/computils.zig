@@ -114,6 +114,21 @@ pub fn getCompletions(
                     },
                 });
             }
+            for (0..s.nfields) |i| {
+                const f = s.fields[i];
+                try items.append(.{
+                    .label = std.mem.span(if (f.quotedname) |q| q else f.name),
+                    .kind = COMPLETION_Field,
+                    .documentation = .{
+                        .kind = "markdown",
+                        .value = try utils.getDocCmt(
+                            allocator,
+                            src,
+                            @intCast(f.offset),
+                        ),
+                    },
+                });
+            }
         } else if (is_cursor_in_task(src, off)) {
             for (quickbuildls.task_keyword_names) |kw| {
                 try items.append(
