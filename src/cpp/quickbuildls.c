@@ -2,15 +2,9 @@
 #include <string.h>
 #include <sys/types.h>
 
-#define KEYWORDS(_X)                                                           \
-    _X("run", "## Run\n---\nThe command this task should run")                 \
-    _X("run_parallel", "## Run Parallel\n---\nA boolean that specifies if "    \
-                       "this task should run in parallel")                     \
-    _X("depends", "## Depends\n---\nThe list of tasks that should be run "     \
-                  "before the current task")                                   \
-    _X("depends_parallel",                                                     \
-       "## Depends Parallel\n---\nA boolean that specifies if the "            \
-       "dependencies should run in parallel")
+#define X(k, _) k,
+const char *task_keyword_names[KEYWORDS_LEN] = {KEYWORDS(X)};
+#undef X
 
 uint is_keyword(const char *s)
 {

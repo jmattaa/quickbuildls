@@ -10,8 +10,11 @@
 #include "quickbuildls.hpp"
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <string>
 #include <vector>
+
+#define noop (void)0
 
 static bool qls_state_set(qls_state *s, const char *csrc);
 static void qls_free_state_but_not_state_ptr(qls_state *s);
@@ -114,8 +117,18 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         t->type = QLS_TASK;
         t->offset = get_origin_index(ast.tasks[i].origin);
 
+        bool iter_has_value = ast.tasks[i].iterator.content != "__task__";
+        if (iter_has_value)
+            t->value = strdup(ast.tasks[i].iterator.content.c_str());
+
         std::string tname =
             std::visit(ASTVisitContent{}, ast.tasks[i].identifier);
+
+        // value is set -> iterator -> name not quoted
+        // value is not set -> iterator -> name quoted
+        if (!iter_has_value)
+            t->quotedname = strdup(("\"" + tname + "\"").c_str());
+
         t->name = strdup(tname.c_str());
 
         // for some reason the quoted strings offset is always wrong by one 😭
@@ -148,23 +161,25 @@ static void qls_free_state_but_not_state_ptr(qls_state *s)
     {
         qls_obj *f = &s->fields[i];
 
-        f->name ? free(f->name) : (void)0;
-        f->value ? free(f->value) : (void)0;
+        f->name ? free(f->name) : noop;
+        f->value ? free(f->value) : noop;
     }
-    s->fields ? free(s->fields) : (void)0;
+    s->fields ? free(s->fields) : noop;
 
     for (int i = 0; i < s->ntasks; i++)
     {
         qls_obj *t = &s->tasks[i];
-        t->name ? free(t->name) : (void)0;
+        t->name ? free(t->name) : noop;
+        t->value ? free(t->value) : noop;
+        t->quotedname ? free(t->quotedname) : noop;
 
         for (int j = 0; j < t->nfields; j++)
         {
             qls_obj *f = &t->fields[j];
-            f->name ? free(f->name) : (void)0;
-            f->value ? free(f->value) : (void)0;
+            f->name ? free(f->name) : noop;
+            f->value ? free(f->value) : noop;
         }
-        t->fields ? free(t->fields) : (void)0;
+        t->fields ? free(t->fields) : noop;
     }
 
     qls_free_s_err(s->err);
@@ -174,6 +189,6 @@ static void qls_free_s_err(qls_err *e)
 {
     if (!e)
         return;
-    e->msg ? free(e->msg) : (void)0;
+    e->msg ? free(e->msg) : noop;
     free(e);
 }

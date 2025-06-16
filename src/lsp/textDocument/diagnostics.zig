@@ -42,7 +42,7 @@ pub fn trypush(
 
         if (cs.err) |e|
             if (e.*.msg) |msg| {
-                const lchar = utils.offset_to_line_char(
+                const lchar = utils.offsetToLineChar(
                     state.document.?,
                     e.*.offset,
                 );

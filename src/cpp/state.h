@@ -26,7 +26,12 @@ extern "C"
         enum qls_objtype type;
         int offset;
 
-        char *value; // only if type is QLS_FIELD else use fields and depends
+        // `QLS_FIELD`: it will be the value of the field
+        //
+        // `QLS_TASK`: `if` the task contains an iterator it will be the iterator
+        char *value;
+        // `QLS_TASK`
+        char *quotedname; 
         struct qls_obj *fields; // only if type is QLS_TASK
                                 //
                                 // dependencies are as a string in the depends

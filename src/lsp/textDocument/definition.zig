@@ -85,12 +85,12 @@ fn get_definition(
     tol: *u32,
     toc: *u32,
 ) error{NotFound}!void {
-    const boffset: usize = utils.line_char_to_offset(src, l, c);
+    const boffset: usize = utils.lineCharToOffset(src, l, c);
     if (boffset >= src.len)
         return;
 
-    const ident = try utils.get_ident(src, boffset);
-    if (utils.is_keyword(ident))
+    const ident = try utils.getIndent(src, boffset);
+    if (utils.isKeyword(ident))
         return error.NotFound;
 
     if (state.cstate) |s| {
@@ -98,7 +98,7 @@ fn get_definition(
             const f = s.fields[i];
             const fname: []const u8 = std.mem.span(f.name);
             if (std.mem.eql(u8, fname, ident)) {
-                tol.*, toc.* = utils.offset_to_line_char(
+                tol.*, toc.* = utils.offsetToLineChar(
                     src,
                     @intCast(f.offset),
                 );
@@ -111,7 +111,7 @@ fn get_definition(
             const t = s.tasks[i];
             const tname: []const u8 = std.mem.span(t.name);
             if (std.mem.eql(u8, tname, ident)) {
-                tol.*, toc.* = utils.offset_to_line_char(
+                tol.*, toc.* = utils.offsetToLineChar(
                     src,
                     @intCast(t.offset),
                 );
@@ -124,7 +124,7 @@ fn get_definition(
                 const f = t.fields[j];
                 const fname: []const u8 = std.mem.span(f.name);
                 if (std.mem.eql(u8, fname, ident)) {
-                    tol.*, toc.* = utils.offset_to_line_char(
+                    tol.*, toc.* = utils.offsetToLineChar(
                         src,
                         @intCast(f.offset),
                     );

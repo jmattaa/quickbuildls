@@ -4,6 +4,7 @@ a simple language server for [quickbuild](https://github.com/nordtechtiger/quick
 
 ### supports:
 
+- completions & snippets
 - hover
 - diagnostics
 - goto definition

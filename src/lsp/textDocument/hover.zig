@@ -93,9 +93,9 @@ pub fn get_hover_md(
     l: u32,
     c: u32,
 ) !?[]const u8 {
-    const boffset = utils.line_char_to_offset(src, l, c);
+    const boffset = utils.lineCharToOffset(src, l, c);
 
-    const ident = try utils.get_ident(src, boffset);
+    const ident = try utils.getIndent(src, boffset);
 
     if (state.cstate) |s| {
         for (0..s.nfields) |i| {
@@ -118,12 +118,12 @@ pub fn get_hover_md(
                 // the fields inside a task shouldn't show hover info
                 // unless the cursor is on them, this will make it so that
                 // we keep the fields in a task inside of that scope 🔥
-                and utils.in_range(boffset, f.offset, fname))
+                and utils.isInRange(boffset, f.offset, fname))
                     return try get_field_hover(allocator, f, ident, src);
             }
 
             if (std.mem.eql(u8, std.mem.span(t.name), ident)) {
-                const doc = try utils.get_doc_cmt(
+                const doc = try utils.getDocCmt(
                     allocator,
                     src,
                     @intCast(t.offset),
@@ -162,7 +162,7 @@ fn get_field_hover(
     ident: []const u8,
     src: []const u8,
 ) !?[]const u8 {
-    if (utils.is_keyword(ident)) {
+    if (utils.isKeyword(ident)) {
         const indent_cstr = try allocator.dupeZ(u8, ident);
         defer allocator.free(indent_cstr);
         return try allocator.dupe(
@@ -171,7 +171,7 @@ fn get_field_hover(
         );
     }
 
-    const doc = try utils.get_doc_cmt(
+    const doc = try utils.getDocCmt(
         allocator,
         src,
         @intCast(f.offset),
