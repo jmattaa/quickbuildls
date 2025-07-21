@@ -1,6 +1,8 @@
 #ifndef QUICKBUILDLS_C_H
 #define QUICKBUILDLS_C_H
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <sys/types.h>
 
 #define KEYWORDS(_X)                                                           \
@@ -16,9 +18,9 @@
 #define KEYWORDS_LEN 4
 
 // defined in lexer.cpp
-uint is_alphabetic(char x);
+bool is_alphanumeric(char x);
 
-uint is_keyword(const char *s);
+uint8_t is_keyword(const char *s);
 const char *get_keyword_desc(const char *k);
 
 extern const char *task_keyword_names[KEYWORDS_LEN];

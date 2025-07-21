@@ -6,12 +6,9 @@
 #ifndef QUICKBUILDLS_H
 #define QUICKBUILDLS_H
 
-#include "lexer.hpp"
-#include "parser.hpp"
+#include "quickbuild/parser.hpp"
 #include <string>
 #include <variant>
-
-size_t get_origin_index(const Origin &origin);
 
 struct ASTVisitContent
 {
@@ -51,18 +48,18 @@ struct ASTVisitContent
     std::string operator()(Replace const &r)
     {
         std::string res = "";
-        if (r.identifier)
+        if (r.input)
         {
-            res += std::visit(ASTVisitContent{}, *(r.identifier));
+            res += std::visit(ASTVisitContent{}, *(r.input));
             res += ": ";
         }
-        if (r.original)
+        if (r.filter)
         {
-            res += std::visit(ASTVisitContent{}, *(r.original));
+            res += std::visit(ASTVisitContent{}, *(r.filter));
             res += " -> ";
         }
-        if (r.replacement)
-            res += std::visit(ASTVisitContent{}, *(r.replacement));
+        if (r.product)
+            res += std::visit(ASTVisitContent{}, *(r.product));
 
         return res;
     }

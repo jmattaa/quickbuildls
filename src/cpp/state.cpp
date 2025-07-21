@@ -4,9 +4,9 @@
 // do as much c as possible) :)
 
 #include "state.h"
-#include "errors.hpp"
-#include "lexer.hpp"
-#include "parser.hpp"
+#include "quickbuild/errors.hpp"
+#include "quickbuild/lexer.hpp"
+#include "quickbuild/parser.hpp"
 #include "quickbuildls.hpp"
 #include <cstdlib>
 #include <cstring>
@@ -84,15 +84,32 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     }
     catch (BuildException &e)
     {
-        auto err = ErrorHandler::peek_error();
-        if (err)
+        auto errs = ErrorHandler::get_errors();
+        for (const auto &[key, err] : errs)
         {
-            qls_free_s_err(s->err);
-            s->err = (qls_err *)calloc(1, sizeof(qls_err));
-            s->err->msg = strdup(err->message.c_str());
-            if (err->context.stream_pos)
-                s->err->offset = err->context.stream_pos->index;
+            if (err)
+            {
+                // TODO: make it an error stack
+                qls_free_s_err(s->err);
+                s->err = (qls_err *)calloc(1, sizeof(qls_err));
+                s->err->msg = strdup(err->get_exception_msg());
+
+                const BuildError *raw_err = err.get();
+                if (auto e_with_ref =
+                        dynamic_cast<const EInvalidSymbol *>(raw_err))
+                {
+                    s->err->offset = e_with_ref->reference.index;
+                    s->err->len = e_with_ref->reference.length;
+                }
+                else if (auto e_with_ref =
+                             dynamic_cast<const EInvalidGrammar *>(raw_err))
+                {
+                    s->err->offset = e_with_ref->reference.index;
+                    s->err->len = e_with_ref->reference.length;
+                }
+            }
         }
+
         return false; // early return should keep state as is
     }
 
@@ -102,7 +119,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     {
         qls_obj *f = &s->fields[i];
         f->type = QLS_FIELD;
-        f->offset = get_origin_index(ast.fields[i].origin);
+        f->offset = ast.fields[i].reference.index;
 
         f->name = strdup(ast.fields[i].identifier.content.c_str());
         f->quotedname =
@@ -117,7 +134,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     {
         qls_obj *t = &s->tasks[i];
         t->type = QLS_TASK;
-        t->offset = get_origin_index(ast.tasks[i].origin);
+        t->offset = ast.tasks[i].reference.index;
 
         bool iter_has_value = ast.tasks[i].iterator.content != "__task__";
         if (iter_has_value)
@@ -133,7 +150,8 @@ static bool qls_state_set(qls_state *s, const char *csrc)
 
         t->name = strdup(tname.c_str());
 
-        // for some reason the quoted strings offset is always wrong by one 😭
+        // for some reason the quoted strings offset is always wrong by
+        // one 😭
         if (src[t->offset - tname.size() - 1] != '\n')
             t->offset -= 1;
 
@@ -143,7 +161,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         {
             qls_obj *f = &t->fields[j];
             f->type = QLS_FIELD;
-            f->offset = get_origin_index(ast.tasks[i].fields[j].origin);
+            f->offset = ast.tasks[i].fields[j].reference.index;
             f->name = strdup(ast.tasks[i].fields[j].identifier.content.c_str());
             f->value = strdup(
                 std::visit(ASTVisitContent{}, ast.tasks[i].fields[j].expression)

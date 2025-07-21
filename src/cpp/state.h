@@ -42,6 +42,7 @@ extern "C"
     {
         char *msg;
         size_t offset;
+        size_t len;
     } qls_err;
 
     // resembles the AST object in quickbuild

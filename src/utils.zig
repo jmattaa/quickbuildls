@@ -63,8 +63,8 @@ pub fn offsetToLineChar(s: []const u8, off: usize) [2]u32 {
 }
 
 // a wrapper around the c function
-pub fn isAlphabetic(c: u8) bool {
-    return if (quickbuildls.is_alphabetic(c) == 1) true else false;
+pub fn isAlphanumeric(c: u8) bool {
+    return quickbuildls.is_alphanumeric(c);
 }
 
 // a wrapper around the c function
@@ -83,10 +83,10 @@ pub fn getIndent(
     off: usize,
 ) error{NotFound}![]const u8 {
     var start = off;
-    while (start > 0 and isAlphabetic(src[start - 1]))
+    while (start > 0 and isAlphanumeric(src[start - 1]))
         start -= 1;
     var end = off;
-    while (end < src.len and isAlphabetic(src[end]))
+    while (end < src.len and isAlphanumeric(src[end]))
         end += 1;
 
     const ident = if (start < end)
