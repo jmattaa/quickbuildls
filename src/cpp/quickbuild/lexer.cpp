@@ -30,7 +30,7 @@
 #include <variant>
 
 // used for determining e.g. variable names.
-bool is_alphanumeric(char x)
+extern "C" bool is_alphanumeric(char x)
 {
     return ((x >= 'A') && (x <= 'Z')) || ((x >= 'a') && (x <= 'z')) ||
            x == '_' || x == '-' || (x >= '0' && x <= '9');

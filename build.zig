@@ -1,4 +1,5 @@
 const std = @import("std");
+const buildutils = @import("buildutils.zig");
 
 pub fn build(b: *std.Build) !void {
     const allocator = std.heap.page_allocator;
@@ -19,41 +20,20 @@ pub fn build(b: *std.Build) !void {
 
     // C++ & C
     // -----------------------------------------------------------------------
-    var dir = try std.fs.cwd().openDir("src/cpp", .{ .iterate = true });
-    defer dir.close();
-
-    exe.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "src/cpp" } });
     exe.linkLibCpp();
     exe.linkLibC();
 
-    const cppflags = [_][]const u8{"--std=c++17"};
     const cflags = [_][]const u8{};
+    const cppflags = [_][]const u8{"--std=c++17"};
 
-    var dirIterator = dir.iterate();
-    while (try dirIterator.next()) |entry| {
-        const is_cpp = std.mem.endsWith(u8, entry.name, ".cpp");
-        const is_c = std.mem.endsWith(u8, entry.name, ".c");
-        if (!is_cpp and !is_c) continue;
-
-        const path = try std.fs.path.join(allocator, &.{
-            "src/cpp",
-            entry.name,
-        });
-        defer allocator.free(path);
-
-        const flags = if (is_cpp) &cppflags else &cflags;
-
-        exe.addCSourceFile(.{
-            .flags = flags,
-            .language = if (is_cpp) .cpp else .c,
-            .file = .{
-                .src_path = .{
-                    .owner = b,
-                    .sub_path = path,
-                },
-            },
-        });
-    }
+    try buildutils.addSourceRecursive(
+        allocator,
+        exe,
+        b,
+        "src/cpp",
+        &cflags,
+        &cppflags,
+    );
 
     // -----------------------------------------------------------------------
 
