@@ -1,0 +1,45 @@
+cc = "gcc";
+
+cflags = "-Iinclude";
+cflagsdev = "-g -Wall -Wextra -fsanitize=address [cflags]";
+cflagsrel = "-O3 [cflags]";
+
+lflags = "";
+lflagsdev = "-g -fsanitize=address [lflags]";
+lflagsrel = "-O3 [lflags]";
+
+srcs = "src/*.c";
+devobjs = srcs: "src/*.c" -> "build/dev/*.o";
+relobjs = srcs: "src/*.c" -> "build/rel/*.o";
+
+headers = "include/*.h";
+
+dev_exec = "servc";
+rel_exec = "build/rel/servc";
+
+"dev" {
+    depends = "srcs", "headers", "build_devobjs";
+    run = "[cc] [cflagsdev] -o [dev_exec] [devobjs]";
+}
+
+"build_devobjs" {
+    depends = "srcs", "headers", devobjs;
+    depends_parallel = true;
+}
+
+devobjs as obj {
+    obj_src = obj: "build/dev/*.o" -> "build/rel/*.o";
+    run = "[cc] [cflagsdev] -c [obj_src] -o [obj]";
+}
+
+# utility tasks 
+
+# creates all the necessary directories
+"mkdirs" {
+    run = "mkdir -p build/dev build/rel";
+}
+
+# cleans up the built stuff by removing the `build` directory
+"clean" {
+    run = "rm -rf build";
+}

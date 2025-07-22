@@ -3,4 +3,4 @@ zig-out
 
 *.log
 
-quickbuild
+./quickbuild
