@@ -50,7 +50,6 @@ struct ReferenceView
 class BuildError
 {
   public:
-    virtual std::string render_error(std::vector<unsigned char> config) = 0;
     virtual char const *get_exception_msg() = 0;
     virtual ~BuildError() = default;
 };
@@ -61,7 +60,6 @@ class ENoMatchingIdentifier : public BuildError
     Identifier identifier;
 
   public:
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoMatchingIdentifier() = delete;
     ENoMatchingIdentifier(Identifier);
@@ -78,17 +76,28 @@ class ENoMatchingIdentifier : public BuildError
 //   ENoFieldNorDefault(std::string);
 // };
 
-class ENonZeroProcess : public BuildError
+class EWithStreamReference
+{
+  public:
+    virtual const StreamReference &get_reference() const = 0;
+    virtual ~EWithStreamReference() = default;
+};
+
+class ENonZeroProcess : public BuildError, public EWithStreamReference
 {
   private:
     std::string cmdline;
 
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENonZeroProcess() = delete;
     ENonZeroProcess(std::string, StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
 class ETaskNotFound : public BuildError
@@ -97,7 +106,6 @@ class ETaskNotFound : public BuildError
     std::string task_name;
 
   public:
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ETaskNotFound() = delete;
     ETaskNotFound(std::string);
@@ -106,7 +114,6 @@ class ETaskNotFound : public BuildError
 class ENoTasks : public BuildError
 {
   public:
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
 };
 
@@ -116,43 +123,54 @@ class EAmbiguousTask : public BuildError
     Task task;
 
   public:
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EAmbiguousTask() = delete;
     EAmbiguousTask(Task);
 };
 
-class EInvalidSymbol : public BuildError
+class EInvalidSymbol : public BuildError, public EWithStreamReference
 {
   private:
     std::string symbol;
 
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EInvalidSymbol() = delete;
     EInvalidSymbol(StreamReference, std::string);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class EInvalidGrammar : public BuildError
+class EInvalidGrammar : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EInvalidGrammar() = delete;
     EInvalidGrammar(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class EInvalidLiteral : public BuildError
+class EInvalidLiteral : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EInvalidLiteral() = delete;
     EInvalidLiteral(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
 class ENoValue : public BuildError
@@ -161,131 +179,178 @@ class ENoValue : public BuildError
     Identifier identifier;
 
   public:
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoValue() = delete;
     ENoValue(Identifier);
 };
 
-class ENoLinestop : public BuildError
+class ENoLinestop : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoLinestop() = delete;
     ENoLinestop(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class ENoIterator : public BuildError
+class ENoIterator : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoIterator() = delete;
     ENoIterator(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class ENoTaskOpen : public BuildError
+class ENoTaskOpen : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoTaskOpen() = delete;
     ENoTaskOpen(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class ENoTaskClose : public BuildError
+class ENoTaskClose : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoTaskClose() = delete;
     ENoTaskClose(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
 // todo: revisit this.
-class EInvalidListEnd : public BuildError
+class EInvalidListEnd : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EInvalidListEnd() = delete;
     EInvalidListEnd(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class ENoReplacementIdentifier : public BuildError
+class ENoReplacementIdentifier : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoReplacementIdentifier() = delete;
     ENoReplacementIdentifier(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class ENoReplacementOriginal : public BuildError
+class ENoReplacementOriginal : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoReplacementOriginal() = delete;
     ENoReplacementOriginal(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class ENoReplacementArrow : public BuildError
+class ENoReplacementArrow : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoReplacementArrow() = delete;
     ENoReplacementArrow(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class ENoReplacementReplacement : public BuildError
+class ENoReplacementReplacement : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoReplacementReplacement() = delete;
     ENoReplacementReplacement(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class EInvalidEscapedExpression : public BuildError
+class EInvalidEscapedExpression : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EInvalidEscapedExpression() = delete;
     EInvalidEscapedExpression(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class ENoExpressionClose : public BuildError
+class ENoExpressionClose : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ENoExpressionClose() = delete;
     ENoExpressionClose(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
-class EEmptyExpression : public BuildError
+class EEmptyExpression : public BuildError, public EWithStreamReference
 {
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EEmptyExpression() = delete;
     EEmptyExpression(StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
 class EInvalidInputFile : public BuildError
@@ -294,23 +359,26 @@ class EInvalidInputFile : public BuildError
     std::string path;
 
   public:
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EInvalidInputFile() = delete;
     EInvalidInputFile(std::string);
 };
 
-class EInvalidEscapeCode : public BuildError
+class EInvalidEscapeCode : public BuildError, public EWithStreamReference
 {
   private:
     unsigned char code;
 
   public:
     StreamReference reference;
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     EInvalidEscapeCode() = delete;
     EInvalidEscapeCode(unsigned char, StreamReference);
+
+    virtual const StreamReference &get_reference() const override
+    {
+        return reference;
+    };
 };
 
 class ERecursiveVariable : public BuildError
@@ -319,7 +387,6 @@ class ERecursiveVariable : public BuildError
     Identifier identifier;
 
   public:
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ERecursiveVariable() = delete;
     ERecursiveVariable(Identifier);
@@ -332,7 +399,6 @@ class ERecursiveTask : public BuildError
     std::string dependency_value;
 
   public:
-    std::string render_error(std::vector<unsigned char> config) override;
     char const *get_exception_msg() override;
     ERecursiveTask() = delete;
     ERecursiveTask(Task, std::string);
@@ -365,54 +431,6 @@ class BuildException : public std::exception
     const char *what() const noexcept override { return details; };
 };
 
-// a single frame in the context stack.
-class Frame
-{
-  public:
-    virtual std::string render_frame(std::vector<unsigned char> config) = 0;
-    virtual std::string get_unique_identifier() = 0;
-    virtual ~Frame() = default;
-};
-
-class EntryBuildFrame : public Frame
-{
-  private:
-    std::string task;
-
-  public:
-    StreamReference reference;
-    std::string render_frame(std::vector<unsigned char> config) override;
-    std::string get_unique_identifier() override;
-    EntryBuildFrame() = delete;
-    EntryBuildFrame(std::string task, StreamReference reference);
-};
-
-class DependencyBuildFrame : public Frame
-{
-  private:
-    std::string task;
-
-  public:
-    StreamReference reference;
-    std::string render_frame(std::vector<unsigned char> config) override;
-    std::string get_unique_identifier() override;
-    DependencyBuildFrame() = delete;
-    DependencyBuildFrame(std::string task, StreamReference reference);
-};
-
-class IdentifierEvaluateFrame : public Frame
-{
-  private:
-    std::string identifier;
-
-  public:
-    StreamReference reference;
-    std::string render_frame(std::vector<unsigned char> config) override;
-    std::string get_unique_identifier() override;
-    IdentifierEvaluateFrame() = delete;
-    IdentifierEvaluateFrame(std::string identifier, StreamReference reference);
-};
-
 // api-facing context stack getter.
 class ContextStack
 {
@@ -433,18 +451,6 @@ class ContextStack
 
     static void freeze();
     static bool is_frozen();
-};
-
-// api-facing context stack frame handler.
-class FrameGuard
-{
-  private:
-    size_t thread_hash;
-
-  public:
-    FrameGuard() = delete;
-    template <typename F> FrameGuard(F frame);
-    ~FrameGuard();
 };
 
 #endif

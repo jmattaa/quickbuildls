@@ -46,102 +46,48 @@ bool ContextStack::frozen = false;
 void ContextStack::freeze() { ContextStack::frozen = true; }
 bool ContextStack::is_frozen() { return ContextStack::frozen; }
 std::unordered_map<size_t, std::vector<std::shared_ptr<Frame>>>
-ContextStack::dump_stack() {
-  return stack;
+ContextStack::dump_stack()
+{
+    return stack;
 }
-std::vector<std::shared_ptr<Frame>> ContextStack::export_local_stack() {
-  std::thread::id thread_id = std::this_thread::get_id();
-  size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
-  std::unique_lock<std::mutex> guard(ContextStack::stack_lock);
-  return ContextStack::stack[thread_hash];
+std::vector<std::shared_ptr<Frame>> ContextStack::export_local_stack()
+{
+    std::thread::id thread_id = std::this_thread::get_id();
+    size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
+    std::unique_lock<std::mutex> guard(ContextStack::stack_lock);
+    return ContextStack::stack[thread_hash];
 }
 void ContextStack::import_local_stack(
-    std::vector<std::shared_ptr<Frame>> local_stack) {
-  std::thread::id thread_id = std::this_thread::get_id();
-  size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
-  std::unique_lock<std::mutex> guard(ContextStack::stack_lock);
-  ContextStack::stack[thread_hash] = local_stack;
+    std::vector<std::shared_ptr<Frame>> local_stack)
+{
+    std::thread::id thread_id = std::this_thread::get_id();
+    size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
+    std::unique_lock<std::mutex> guard(ContextStack::stack_lock);
+    ContextStack::stack[thread_hash] = local_stack;
 }
-
-// frameguard implementation.
-template <typename F> FrameGuard::FrameGuard(F frame) {
-  if (ContextStack::is_frozen())
-    return;
-  std::shared_ptr<F> frame_ptr = std::make_shared<F>(frame);
-  std::thread::id thread_id = std::this_thread::get_id();
-  thread_hash = std::hash<std::thread::id>{}(thread_id);
-  std::unique_lock<std::mutex> guard(ContextStack::stack_lock);
-  ContextStack::stack[thread_hash].push_back(std::move(frame_ptr));
-}
-
-FrameGuard::~FrameGuard() {
-  if (ContextStack::is_frozen())
-    return;
-  std::unique_lock<std::mutex> guard(ContextStack::stack_lock);
-  guard.unlock();
-  assert(ContextStack::stack.size() != 0 &&
-         "attempt to erase a non-existent context frame pointer");
-  guard.lock();
-  ContextStack::stack[thread_hash].pop_back();
-}
-
-EntryBuildFrame::EntryBuildFrame(std::string task, StreamReference reference) {
-  this->task = task;
-  this->reference = reference;
-}
-
-std::string EntryBuildFrame::get_unique_identifier() { return task; }
-
-DependencyBuildFrame::DependencyBuildFrame(std::string task,
-                                           StreamReference reference) {
-  this->task = task;
-  this->reference = reference;
-}
-
-std::string DependencyBuildFrame::get_unique_identifier() { return task; }
-
-IdentifierEvaluateFrame::IdentifierEvaluateFrame(std::string identifier,
-                                                 StreamReference reference) {
-  this->identifier = identifier;
-  this->reference = reference;
-}
-
-std::string IdentifierEvaluateFrame::get_unique_identifier() {
-  return identifier;
-}
-
-// std::string ErrorRenderer::get_rendered_view(ReferenceView reference_view) {
-//   std::string line_str = reference_view.line_str;
-//   size_t line_num = reference_view.line_num;
-//   size_t line_num_length = std::log(line_num) / std::log(10);
-//   std::string underline_prefix(' ',
-//                                line_num_length + 2 +
-//                                reference_view.start_ref);
-//   std::string underline("^", reference_view.end_ref -
-//   reference_view.start_ref); return std::format("{} | {}\n{}{}", line_num,
-//   line_str, underline_prefix,
-//                      underline);
-// }
 
 // specific errors.
-ENoMatchingIdentifier::ENoMatchingIdentifier(Identifier identifier) {
-  this->identifier = identifier;
+ENoMatchingIdentifier::ENoMatchingIdentifier(Identifier identifier)
+{
+    this->identifier = identifier;
 }
 
-char const *ENoMatchingIdentifier::get_exception_msg() {
-  return "No matching identifier";
+char const *ENoMatchingIdentifier::get_exception_msg()
+{
+    return "No matching identifier";
 }
 
-ENonZeroProcess::ENonZeroProcess(std::string cmdline,
-                                 StreamReference reference) {
-  this->cmdline = cmdline;
-  this->reference = reference;
+ENonZeroProcess::ENonZeroProcess(std::string cmdline, StreamReference reference)
+{
+    this->cmdline = cmdline;
+    this->reference = reference;
 }
 
 char const *ENonZeroProcess::get_exception_msg() { return "Command failed"; }
 
-ETaskNotFound::ETaskNotFound(std::string task_name) {
-  this->task_name = task_name;
+ETaskNotFound::ETaskNotFound(std::string task_name)
+{
+    this->task_name = task_name;
 }
 
 char const *ETaskNotFound::get_exception_msg() { return "Task not found"; }
@@ -150,25 +96,29 @@ char const *ENoTasks::get_exception_msg() { return "No tasks are defined"; }
 
 EAmbiguousTask::EAmbiguousTask(Task task) { this->task = task; }
 
-char const *EAmbiguousTask::get_exception_msg() {
-  return "Ambiguous topmost task";
+char const *EAmbiguousTask::get_exception_msg()
+{
+    return "Ambiguous topmost task";
 }
 
-EInvalidSymbol::EInvalidSymbol(StreamReference reference, std::string symbol) {
-  this->reference = reference;
-  this->symbol = symbol;
+EInvalidSymbol::EInvalidSymbol(StreamReference reference, std::string symbol)
+{
+    this->reference = reference;
+    this->symbol = symbol;
 }
 
 char const *EInvalidSymbol::get_exception_msg() { return "Invalid symbol"; }
 
-EInvalidLiteral::EInvalidLiteral(StreamReference reference) {
-  this->reference = reference;
+EInvalidLiteral::EInvalidLiteral(StreamReference reference)
+{
+    this->reference = reference;
 }
 
 char const *EInvalidLiteral::get_exception_msg() { return "Invalid literal"; }
 
-EInvalidGrammar::EInvalidGrammar(StreamReference reference) {
-  this->reference = reference;
+EInvalidGrammar::EInvalidGrammar(StreamReference reference)
+{
+    this->reference = reference;
 }
 
 char const *EInvalidGrammar::get_exception_msg() { return "Invalid grammar"; }
@@ -177,127 +127,152 @@ ENoValue::ENoValue(Identifier identifier) { this->identifier = identifier; }
 
 char const *ENoValue::get_exception_msg() { return "No valid value"; }
 
-ENoLinestop::ENoLinestop(StreamReference reference) {
-  this->reference = reference;
+ENoLinestop::ENoLinestop(StreamReference reference)
+{
+    this->reference = reference;
 }
 
 char const *ENoLinestop::get_exception_msg() { return "No linestop"; }
 
-ENoIterator::ENoIterator(StreamReference reference) {
-  this->reference = reference;
+ENoIterator::ENoIterator(StreamReference reference)
+{
+    this->reference = reference;
 }
 
 char const *ENoIterator::get_exception_msg() { return "No task iterator"; }
 
-ENoTaskOpen::ENoTaskOpen(StreamReference reference) {
-  this->reference = reference;
+ENoTaskOpen::ENoTaskOpen(StreamReference reference)
+{
+    this->reference = reference;
 }
 
-char const *ENoTaskOpen::get_exception_msg() {
-  return "No task open curly bracket";
+char const *ENoTaskOpen::get_exception_msg()
+{
+    return "No task open curly bracket";
 }
 
-ENoTaskClose::ENoTaskClose(StreamReference reference) {
-  this->reference = reference;
+ENoTaskClose::ENoTaskClose(StreamReference reference)
+{
+    this->reference = reference;
 }
 
-char const *ENoTaskClose::get_exception_msg() {
-  return "No task close curly bracket";
+char const *ENoTaskClose::get_exception_msg()
+{
+    return "No task close curly bracket";
 }
 
-EInvalidListEnd::EInvalidListEnd(StreamReference reference) {
-  this->reference = reference;
+EInvalidListEnd::EInvalidListEnd(StreamReference reference)
+{
+    this->reference = reference;
 }
 
 char const *EInvalidListEnd::get_exception_msg() { return "Invalid list end"; }
 
-ENoReplacementIdentifier::ENoReplacementIdentifier(StreamReference reference) {
-  this->reference = reference;
+ENoReplacementIdentifier::ENoReplacementIdentifier(StreamReference reference)
+{
+    this->reference = reference;
 }
 
-char const *ENoReplacementIdentifier::get_exception_msg() {
-  return "No replacement identifier";
+char const *ENoReplacementIdentifier::get_exception_msg()
+{
+    return "No replacement identifier";
 }
 
-ENoReplacementOriginal::ENoReplacementOriginal(StreamReference reference) {
-  this->reference = reference;
+ENoReplacementOriginal::ENoReplacementOriginal(StreamReference reference)
+{
+    this->reference = reference;
 }
 
-char const *ENoReplacementOriginal::get_exception_msg() {
-  return "No replacement original";
+char const *ENoReplacementOriginal::get_exception_msg()
+{
+    return "No replacement original";
 }
 
-ENoReplacementArrow::ENoReplacementArrow(StreamReference reference) {
-  this->reference = reference;
+ENoReplacementArrow::ENoReplacementArrow(StreamReference reference)
+{
+    this->reference = reference;
 }
 
-char const *ENoReplacementArrow::get_exception_msg() {
-  return "No replacement arrow";
+char const *ENoReplacementArrow::get_exception_msg()
+{
+    return "No replacement arrow";
 }
 
-ENoReplacementReplacement::ENoReplacementReplacement(
-    StreamReference reference) {
-  this->reference = reference;
+ENoReplacementReplacement::ENoReplacementReplacement(StreamReference reference)
+{
+    this->reference = reference;
 }
 
-char const *ENoReplacementReplacement::get_exception_msg() {
-  return "No replacement replacement";
+char const *ENoReplacementReplacement::get_exception_msg()
+{
+    return "No replacement replacement";
 }
 
-EInvalidEscapedExpression::EInvalidEscapedExpression(
-    StreamReference reference) {
-  this->reference = reference;
+EInvalidEscapedExpression::EInvalidEscapedExpression(StreamReference reference)
+{
+    this->reference = reference;
 }
 
-char const *EInvalidEscapedExpression::get_exception_msg() {
-  return "Invalid escaped expression";
+char const *EInvalidEscapedExpression::get_exception_msg()
+{
+    return "Invalid escaped expression";
 }
 
-ENoExpressionClose::ENoExpressionClose(StreamReference reference) {
-  this->reference = reference;
+ENoExpressionClose::ENoExpressionClose(StreamReference reference)
+{
+    this->reference = reference;
 }
 
-char const *ENoExpressionClose::get_exception_msg() {
-  return "No expression close";
+char const *ENoExpressionClose::get_exception_msg()
+{
+    return "No expression close";
 }
 
-EEmptyExpression::EEmptyExpression(StreamReference reference) {
-  this->reference = reference;
+EEmptyExpression::EEmptyExpression(StreamReference reference)
+{
+    this->reference = reference;
 }
 
 char const *EEmptyExpression::get_exception_msg() { return "Empty expression"; }
 
 EInvalidInputFile::EInvalidInputFile(std::string path) { this->path = path; }
 
-char const *EInvalidInputFile::get_exception_msg() {
-  return "Invalid input file";
+char const *EInvalidInputFile::get_exception_msg()
+{
+    return "Invalid input file";
 }
 
 EInvalidEscapeCode::EInvalidEscapeCode(unsigned char code,
-                                       StreamReference reference) {
-  this->code = code;
-  this->reference = reference;
+                                       StreamReference reference)
+{
+    this->code = code;
+    this->reference = reference;
 }
 
-char const *EInvalidEscapeCode::get_exception_msg() {
-  return "Invalid escape code";
+char const *EInvalidEscapeCode::get_exception_msg()
+{
+    return "Invalid escape code";
 }
 
-ERecursiveVariable::ERecursiveVariable(Identifier identifier) {
-  this->identifier = identifier;
+ERecursiveVariable::ERecursiveVariable(Identifier identifier)
+{
+    this->identifier = identifier;
 }
 
-char const *ERecursiveVariable::get_exception_msg() {
-  return "Recursive variable initialized";
+char const *ERecursiveVariable::get_exception_msg()
+{
+    return "Recursive variable initialized";
 }
 
-ERecursiveTask::ERecursiveTask(Task task, std::string dependency_value) {
-  this->task = task;
-  this->dependency_value = dependency_value;
+ERecursiveTask::ERecursiveTask(Task task, std::string dependency_value)
+{
+    this->task = task;
+    this->dependency_value = dependency_value;
 }
 
-char const *ERecursiveTask::get_exception_msg() {
-  return "Recursive task built";
+char const *ERecursiveTask::get_exception_msg()
+{
+    return "Recursive task built";
 }
 
 std::unordered_map<size_t, std::shared_ptr<BuildError>>
@@ -305,36 +280,40 @@ std::unordered_map<size_t, std::shared_ptr<BuildError>>
 std::mutex ErrorHandler::error_lock;
 
 std::unordered_map<size_t, std::shared_ptr<BuildError>>
-ErrorHandler::get_errors() {
-  return error_state;
+ErrorHandler::get_errors()
+{
+    return error_state;
 };
 
-template <typename B> void ErrorHandler::halt [[noreturn]] (B build_error) {
-  ContextStack::freeze();
-  std::thread::id thread_id = std::this_thread::get_id();
-  size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
+template <typename B> void ErrorHandler::halt [[noreturn]] (B build_error)
+{
+    ContextStack::freeze();
+    std::thread::id thread_id = std::this_thread::get_id();
+    size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
 
-  std::unique_lock<std::mutex> guard(ErrorHandler::error_lock);
-  ErrorHandler::error_state[thread_hash] = std::make_unique<B>(build_error);
-  throw BuildException(build_error.get_exception_msg());
+    std::unique_lock<std::mutex> guard(ErrorHandler::error_lock);
+    ErrorHandler::error_state[thread_hash] = std::make_unique<B>(build_error);
+    throw BuildException(build_error.get_exception_msg());
 }
 
-template <typename B> void ErrorHandler::soft_report(B build_error) {
-  ContextStack::freeze();
-  std::thread::id thread_id = std::this_thread::get_id();
-  size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
+template <typename B> void ErrorHandler::soft_report(B build_error)
+{
+    ContextStack::freeze();
+    std::thread::id thread_id = std::this_thread::get_id();
+    size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
 
-  std::unique_lock<std::mutex> guard(ErrorHandler::error_lock);
-  ErrorHandler::error_state[thread_hash] = std::make_unique<B>(build_error);
+    std::unique_lock<std::mutex> guard(ErrorHandler::error_lock);
+    ErrorHandler::error_state[thread_hash] = std::make_unique<B>(build_error);
 }
 
-void ErrorHandler::trigger_report [[noreturn]] () {
-  std::unique_lock<std::mutex> guard(ErrorHandler::error_lock);
-  assert(ErrorHandler::error_state.size() > 0 &&
-         "attempt to trigger a report on an empty error state");
-  std::shared_ptr<BuildError> build_error =
-      ErrorHandler::error_state.begin()->second;
-  throw BuildException(build_error->get_exception_msg());
+void ErrorHandler::trigger_report [[noreturn]] ()
+{
+    std::unique_lock<std::mutex> guard(ErrorHandler::error_lock);
+    assert(ErrorHandler::error_state.size() > 0 &&
+           "attempt to trigger a report on an empty error state");
+    std::shared_ptr<BuildError> build_error =
+        ErrorHandler::error_state.begin()->second;
+    throw BuildException(build_error->get_exception_msg());
 }
 
 template void ErrorHandler::halt<ENoMatchingIdentifier>(ENoMatchingIdentifier);
@@ -397,9 +376,6 @@ template void ErrorHandler::soft_report<EInvalidInputFile>(EInvalidInputFile);
 template void ErrorHandler::soft_report<EInvalidEscapeCode>(EInvalidEscapeCode);
 template void ErrorHandler::soft_report<ERecursiveVariable>(ERecursiveVariable);
 template void ErrorHandler::soft_report<ERecursiveTask>(ERecursiveTask);
-template FrameGuard::FrameGuard(IdentifierEvaluateFrame);
-template FrameGuard::FrameGuard(EntryBuildFrame);
-template FrameGuard::FrameGuard(DependencyBuildFrame);
 
 //
 // ErrorContext::ErrorContext(Origin const &origin) {

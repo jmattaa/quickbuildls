@@ -7,6 +7,7 @@
 #include "quickbuild/errors.hpp"
 #include "quickbuild/lexer.hpp"
 #include "quickbuild/parser.hpp"
+#include "quickbuild/tracking.hpp"
 #include "quickbuildls.hpp"
 #include <cstdlib>
 #include <cstring>
@@ -82,31 +83,22 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         Parser parser(lexer.get_token_stream());
         ast = parser.parse_tokens();
     }
-    catch (BuildException &e)
+    catch (BuildException &_)
     {
-        auto errs = ErrorHandler::get_errors();
-        for (const auto &[key, err] : errs)
+        for (const auto &[thread_hash, err] : ErrorHandler::get_errors())
         {
-            if (err)
-            {
-                // TODO: make it an error stack
-                qls_free_s_err(s->err);
-                s->err = (qls_err *)calloc(1, sizeof(qls_err));
-                s->err->msg = strdup(err->get_exception_msg());
+            // TODO: make it an error stack
+            qls_free_s_err(s->err);
+            s->err = (qls_err *)calloc(1, sizeof(qls_err)); // calloc sets 0
+            s->err->msg = strdup(err->get_exception_msg());
 
-                const BuildError *raw_err = err.get();
-                if (auto e_with_ref =
-                        dynamic_cast<const EInvalidSymbol *>(raw_err))
-                {
-                    s->err->offset = e_with_ref->reference.index;
-                    s->err->len = e_with_ref->reference.length;
-                }
-                else if (auto e_with_ref =
-                             dynamic_cast<const EInvalidGrammar *>(raw_err))
-                {
-                    s->err->offset = e_with_ref->reference.index;
-                    s->err->len = e_with_ref->reference.length;
-                }
+            if (auto *e_withRef =
+                    dynamic_cast<EWithStreamReference *>(err.get()))
+            {
+                const StreamReference &ref = e_withRef->get_reference();
+
+                s->err->offset = ref.index;
+                s->err->len  = ref.length;
             }
         }
 
