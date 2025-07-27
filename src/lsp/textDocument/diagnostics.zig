@@ -36,7 +36,6 @@ pub fn trypush(
     out: anytype,
 ) !void {
     if (state.document == null) return;
-    // TODO get error from the State
     if (state.cstate) |cs| {
         var d = std.ArrayList(diagnostics).init(allocator);
 
@@ -46,18 +45,20 @@ pub fn trypush(
                     state.document.?,
                     e.*.offset,
                 );
-                const line = lchar[0];
-                const char = lchar[1];
+                const lcharend = utils.offsetToLineChar(
+                    state.document.?,
+                    e.*.endoffset,
+                );
 
                 try d.append(.{
                     .range = lsputils.range{
                         .start = lsputils.position{
-                            .line = line,
-                            .character = char,
+                            .line = lchar[0],
+                            .character = lchar[1],
                         },
                         .end = lsputils.position{
-                            .line = line,
-                            .character = char,
+                            .line = lcharend[0],
+                            .character = lcharend[1],
                         },
                     },
                     .severity = DIAGNOSTIC_Error,

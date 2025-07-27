@@ -47,6 +47,7 @@ extern "C" void qls_state_update(qls_state *s, const char *csrc)
         s->err = (qls_err *)calloc(1, sizeof(qls_err));
         s->err->msg = strdup(tmp->err->msg);
         s->err->offset = tmp->err->offset;
+        s->err->endoffset = tmp->err->endoffset;
     }
     else
     {
@@ -87,7 +88,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
     {
         for (const auto &[thread_hash, err] : ErrorHandler::get_errors())
         {
-            // TODO: make it an error stack
+            // TODO: make it an error array
             qls_free_s_err(s->err);
             s->err = (qls_err *)calloc(1, sizeof(qls_err)); // calloc sets 0
             s->err->msg = strdup(err->get_exception_msg());
@@ -98,7 +99,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
                 const StreamReference &ref = e_withRef->get_reference();
 
                 s->err->offset = ref.index;
-                s->err->len  = ref.length;
+                s->err->endoffset = ref.index + ref.length;
             }
         }
 
