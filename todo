@@ -1,4 +1,4 @@
-- [ ] get the errors to show correctly with line and char
+- [x] get the errors to show correctly with line and char
 - [x] actually do completions
 - [x] HANDLE THE ERRORS!!!! 
 - [x] add doctype comments thingy to hover 

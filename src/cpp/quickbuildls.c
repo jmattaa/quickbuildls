@@ -6,7 +6,7 @@
 const char *task_keyword_names[KEYWORDS_LEN] = {KEYWORDS(X)};
 #undef X
 
-uint is_keyword(const char *s)
+uint8_t is_keyword(const char *s)
 {
 #define X(k, _)                                                                \
     if (strcmp(s, k) == 0)                                                     \
