@@ -9,7 +9,7 @@ const quickbuildls = @cImport({
     @cInclude("quickbuildls.h");
 });
 
-pub const VERSION = "0.0.1";
+pub const VERSION = "0.0.2";
 
 pub const CutError = error{NotFound};
 // so we get something like the go bytes.Cut function
