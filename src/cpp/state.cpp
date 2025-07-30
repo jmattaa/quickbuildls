@@ -89,7 +89,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         Parser parser(lexer.get_token_stream());
         ast = parser.parse_tokens();
     }
-    catch (BuildException &_)
+    catch (...)
     {
         const auto errs = ErrorHandler::get_errors();
         s->nerrs = errs.size();
@@ -98,6 +98,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         int i = 0;
         for (const auto &[thread_hash, err] : errs)
         {
+            s->errs[i] = (qls_err *)calloc(1, sizeof(qls_err));
             s->errs[i]->msg = strdup(err->get_exception_msg());
 
             if (auto *e_withRef =
@@ -111,8 +112,6 @@ static bool qls_state_set(qls_state *s, const char *csrc)
 
             i++;
         }
-
-        return false; // early return should keep state as is
     }
 
     s->nfields = ast.fields.size();
