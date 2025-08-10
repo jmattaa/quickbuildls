@@ -102,7 +102,6 @@ fn get_definition(
                     src,
                     @intCast(f.offset),
                 );
-                toc.* -= @intCast(fname.len);
                 return;
             }
         }
@@ -115,11 +114,9 @@ fn get_definition(
                     src,
                     @intCast(t.offset),
                 );
-                toc.* -= @intCast(tname.len);
                 return;
             }
 
-            // TODO: i'm unsure if this actually is needed though
             for (0..t.nfields) |j| {
                 const f = t.fields[j];
                 const fname: []const u8 = std.mem.span(f.name);
@@ -128,7 +125,6 @@ fn get_definition(
                         src,
                         @intCast(f.offset),
                     );
-                    toc.* -= @intCast(fname.len);
                     return;
                 }
             }
