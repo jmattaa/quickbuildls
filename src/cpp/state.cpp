@@ -41,18 +41,23 @@ extern "C" void qls_state_update(qls_state *s, const char *csrc)
     }
 
     // we've got an error
-    if (tmp->err)
+    if (tmp->errs)
     {
-        qls_free_s_err(s->err);
-        s->err = (qls_err *)calloc(1, sizeof(qls_err));
-        s->err->msg = strdup(tmp->err->msg);
-        s->err->offset = tmp->err->offset;
-        s->err->endoffset = tmp->err->endoffset;
+        free(s->errs);
+        s->errs = (qls_err **)calloc(tmp->nerrs, sizeof(qls_err *));
+        for (size_t i = 0; i < tmp->nerrs; i++)
+        {
+            qls_free_s_err(s->errs[i]);
+            s->errs[i] = (qls_err *)calloc(1, sizeof(qls_err));
+            s->errs[i]->msg = strdup(tmp->errs[i]->msg);
+            s->errs[i]->offset = tmp->errs[i]->offset;
+            s->errs[i]->endoffset = tmp->errs[i]->endoffset;
+        }
     }
     else
     {
-        qls_free_s_err(s->err);
-        s->err = NULL; // explicitly clear error if none set
+        free(s->errs);
+        s->errs = NULL; // explicitly clear error if none set
     }
 
     qls_free_state_but_not_state_ptr(tmp);
@@ -84,26 +89,29 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         Parser parser(lexer.get_token_stream());
         ast = parser.parse_tokens();
     }
-    catch (BuildException &_)
+    catch (...)
     {
-        for (const auto &[thread_hash, err] : ErrorHandler::get_errors())
+        const auto errs = ErrorHandler::get_errors();
+        s->nerrs = errs.size();
+        s->errs = (qls_err **)calloc(s->nerrs, sizeof(qls_err *));
+
+        int i = 0;
+        for (const auto &[thread_hash, err] : errs)
         {
-            // TODO: make it an error array
-            qls_free_s_err(s->err);
-            s->err = (qls_err *)calloc(1, sizeof(qls_err)); // calloc sets 0
-            s->err->msg = strdup(err->get_exception_msg());
+            s->errs[i] = (qls_err *)calloc(1, sizeof(qls_err));
+            s->errs[i]->msg = strdup(err->get_exception_msg());
 
             if (auto *e_withRef =
                     dynamic_cast<EWithStreamReference *>(err.get()))
             {
                 const StreamReference &ref = e_withRef->get_reference();
 
-                s->err->offset = ref.index;
-                s->err->endoffset = ref.index + ref.length;
+                s->errs[i]->offset = ref.index;
+                s->errs[i]->endoffset = ref.index + ref.length;
             }
-        }
 
-        return false; // early return should keep state as is
+            i++;
+        }
     }
 
     s->nfields = ast.fields.size();
@@ -195,7 +203,11 @@ static void qls_free_state_but_not_state_ptr(qls_state *s)
         t->fields ? free(t->fields) : noop;
     }
 
-    qls_free_s_err(s->err);
+    for (int i = 0; i < s->nerrs; i++)
+    {
+        qls_free_s_err(s->errs[i]);
+    }
+    s->errs ? free(s->errs) : noop;
 }
 
 static void qls_free_s_err(qls_err *e)

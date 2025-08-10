@@ -39,33 +39,36 @@ pub fn trypush(
     if (state.cstate) |cs| {
         var d = std.ArrayList(diagnostics).init(allocator);
 
-        if (cs.err) |e|
-            if (e.*.msg) |msg| {
-                const lchar = utils.offsetToLineChar(
-                    state.document.?,
-                    e.*.offset,
-                );
-                const lcharend = utils.offsetToLineChar(
-                    state.document.?,
-                    e.*.endoffset,
-                );
+        if (cs.errs) |errs| {
+            const errs_slice = errs[0..cs.nerrs];
+            for (errs_slice) |e|
+                if (e.*.msg) |msg| {
+                    const lchar = utils.offsetToLineChar(
+                        state.document.?,
+                        e.*.offset,
+                    );
+                    const lcharend = utils.offsetToLineChar(
+                        state.document.?,
+                        e.*.endoffset,
+                    );
 
-                try d.append(.{
-                    .range = lsputils.range{
-                        .start = lsputils.position{
-                            .line = lchar[0],
-                            .character = lchar[1],
+                    try d.append(.{
+                        .range = lsputils.range{
+                            .start = lsputils.position{
+                                .line = lchar[0],
+                                .character = lchar[1],
+                            },
+                            .end = lsputils.position{
+                                .line = lcharend[0],
+                                .character = lcharend[1],
+                            },
                         },
-                        .end = lsputils.position{
-                            .line = lcharend[0],
-                            .character = lcharend[1],
-                        },
-                    },
-                    .severity = DIAGNOSTIC_Error,
-                    .source = "quickbuildls",
-                    .message = std.mem.span(msg),
-                });
-            };
+                        .severity = DIAGNOSTIC_Error,
+                        .source = "quickbuildls",
+                        .message = std.mem.span(msg),
+                    });
+                };
+        }
 
         const dnotif = notif{
             .jsonrpc = "2.0",
