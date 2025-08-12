@@ -55,7 +55,10 @@ pub fn respond(
         req.params.position.line,
         req.params.position.character,
     );
-    const ident = try utils.getIdent(document, boffset);
+    const ident = utils.getIdent(document, boffset) catch return .{
+        .jsonrpc = "2.0",
+        .id = req.id,
+    };
 
     const md = get_hover_md(
         allocator,

@@ -25,9 +25,7 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
-struct ReferenceView;
 class BuildError;
-class Frame;
 
 #include "lexer.hpp"
 #include "parser.hpp"
@@ -39,30 +37,11 @@ class Frame;
 #include <string>
 #include <vector>
 
-struct ReferenceView
-{
-    std::string line_prefix;
-    std::string line_ref;
-    std::string line_suffix;
-    size_t line_num;
-};
-
 class BuildError
 {
   public:
     virtual char const *get_exception_msg() = 0;
     virtual ~BuildError() = default;
-};
-
-class ENoMatchingIdentifier : public BuildError
-{
-  private:
-    Identifier identifier;
-
-  public:
-    char const *get_exception_msg() override;
-    ENoMatchingIdentifier() = delete;
-    ENoMatchingIdentifier(Identifier);
 };
 
 // class ENoFieldNorDefault : public BuildError {
@@ -81,51 +60,6 @@ class EWithStreamReference
   public:
     virtual const StreamReference &get_reference() const = 0;
     virtual ~EWithStreamReference() = default;
-};
-
-class ENonZeroProcess : public BuildError, public EWithStreamReference
-{
-  private:
-    std::string cmdline;
-
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENonZeroProcess() = delete;
-    ENonZeroProcess(std::string, StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class ETaskNotFound : public BuildError
-{
-  private:
-    std::string task_name;
-
-  public:
-    char const *get_exception_msg() override;
-    ETaskNotFound() = delete;
-    ETaskNotFound(std::string);
-};
-
-class ENoTasks : public BuildError
-{
-  public:
-    char const *get_exception_msg() override;
-};
-
-class EAmbiguousTask : public BuildError
-{
-  private:
-    Task task;
-
-  public:
-    char const *get_exception_msg() override;
-    EAmbiguousTask() = delete;
-    EAmbiguousTask(Task);
 };
 
 class EInvalidSymbol : public BuildError, public EWithStreamReference
@@ -353,17 +287,6 @@ class EEmptyExpression : public BuildError, public EWithStreamReference
     };
 };
 
-class EInvalidInputFile : public BuildError
-{
-  private:
-    std::string path;
-
-  public:
-    char const *get_exception_msg() override;
-    EInvalidInputFile() = delete;
-    EInvalidInputFile(std::string);
-};
-
 class EInvalidEscapeCode : public BuildError, public EWithStreamReference
 {
   private:
@@ -381,29 +304,6 @@ class EInvalidEscapeCode : public BuildError, public EWithStreamReference
     };
 };
 
-class ERecursiveVariable : public BuildError
-{
-  private:
-    Identifier identifier;
-
-  public:
-    char const *get_exception_msg() override;
-    ERecursiveVariable() = delete;
-    ERecursiveVariable(Identifier);
-};
-
-class ERecursiveTask : public BuildError
-{
-  private:
-    Task task;
-    std::string dependency_value;
-
-  public:
-    char const *get_exception_msg() override;
-    ERecursiveTask() = delete;
-    ERecursiveTask(Task, std::string);
-};
-
 // api-facing error handler.
 class ErrorHandler
 {
@@ -416,7 +316,6 @@ class ErrorHandler
   public:
     template <typename B> static void halt [[noreturn]] (B build_error);
     template <typename B> static void soft_report(B build_error);
-    static void trigger_report [[noreturn]] ();
     static std::unordered_map<size_t, std::shared_ptr<BuildError>> get_errors();
 };
 
@@ -429,28 +328,6 @@ class BuildException : public std::exception
   public:
     BuildException(const char *details) : details(details) {}
     const char *what() const noexcept override { return details; };
-};
-
-// api-facing context stack getter.
-class ContextStack
-{
-    friend class FrameGuard;
-
-  private:
-    // thread hash, frames
-    static std::unordered_map<size_t, std::vector<std::shared_ptr<Frame>>>
-        stack;
-    static std::mutex stack_lock;
-    static bool frozen;
-
-  public:
-    static std::unordered_map<size_t, std::vector<std::shared_ptr<Frame>>>
-    dump_stack();
-    static std::vector<std::shared_ptr<Frame>> export_local_stack();
-    static void import_local_stack(std::vector<std::shared_ptr<Frame>>);
-
-    static void freeze();
-    static bool is_frozen();
 };
 
 #endif

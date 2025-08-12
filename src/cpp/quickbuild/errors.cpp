@@ -38,76 +38,16 @@
 #include <thread>
 #include <variant>
 
-std::unordered_map<size_t, std::vector<std::shared_ptr<Frame>>>
-    ContextStack::stack = {};
-std::mutex ContextStack::stack_lock;
-bool ContextStack::frozen = false;
-
-void ContextStack::freeze() { ContextStack::frozen = true; }
-bool ContextStack::is_frozen() { return ContextStack::frozen; }
-std::unordered_map<size_t, std::vector<std::shared_ptr<Frame>>>
-ContextStack::dump_stack()
-{
-    return stack;
-}
-std::vector<std::shared_ptr<Frame>> ContextStack::export_local_stack()
-{
-    std::thread::id thread_id = std::this_thread::get_id();
-    size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
-    std::unique_lock<std::mutex> guard(ContextStack::stack_lock);
-    return ContextStack::stack[thread_hash];
-}
-void ContextStack::import_local_stack(
-    std::vector<std::shared_ptr<Frame>> local_stack)
-{
-    std::thread::id thread_id = std::this_thread::get_id();
-    size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
-    std::unique_lock<std::mutex> guard(ContextStack::stack_lock);
-    ContextStack::stack[thread_hash] = local_stack;
-}
-
-// specific errors.
-ENoMatchingIdentifier::ENoMatchingIdentifier(Identifier identifier)
-{
-    this->identifier = identifier;
-}
-
-char const *ENoMatchingIdentifier::get_exception_msg()
-{
-    return "No matching identifier";
-}
-
-ENonZeroProcess::ENonZeroProcess(std::string cmdline, StreamReference reference)
-{
-    this->cmdline = cmdline;
-    this->reference = reference;
-}
-
-char const *ENonZeroProcess::get_exception_msg() { return "Command failed"; }
-
-ETaskNotFound::ETaskNotFound(std::string task_name)
-{
-    this->task_name = task_name;
-}
-
-char const *ETaskNotFound::get_exception_msg() { return "Task not found"; }
-
-char const *ENoTasks::get_exception_msg() { return "No tasks are defined"; }
-
-EAmbiguousTask::EAmbiguousTask(Task task) { this->task = task; }
-
-char const *EAmbiguousTask::get_exception_msg()
-{
-    return "Ambiguous topmost task";
-}
-
 EInvalidSymbol::EInvalidSymbol(StreamReference reference, std::string symbol)
 {
     this->reference = reference;
     this->symbol = symbol;
 }
 
-char const *EInvalidSymbol::get_exception_msg() { return "Invalid symbol"; }
+char const *EInvalidSymbol::get_exception_msg()
+{
+    return std::format("Invalid symbol: {}", this->symbol).c_str();
+}
 
 EInvalidLiteral::EInvalidLiteral(StreamReference reference)
 {
@@ -132,7 +72,10 @@ ENoLinestop::ENoLinestop(StreamReference reference)
     this->reference = reference;
 }
 
-char const *ENoLinestop::get_exception_msg() { return "No linestop"; }
+char const *ENoLinestop::get_exception_msg()
+{
+    return "Missing semicolon at end of line";
+}
 
 ENoIterator::ENoIterator(StreamReference reference)
 {
@@ -148,7 +91,7 @@ ENoTaskOpen::ENoTaskOpen(StreamReference reference)
 
 char const *ENoTaskOpen::get_exception_msg()
 {
-    return "No task open curly bracket";
+    return "Missing opening curly bracket";
 }
 
 ENoTaskClose::ENoTaskClose(StreamReference reference)
@@ -158,7 +101,7 @@ ENoTaskClose::ENoTaskClose(StreamReference reference)
 
 char const *ENoTaskClose::get_exception_msg()
 {
-    return "No task close curly bracket";
+    return "Missing closing curly bracket";
 }
 
 EInvalidListEnd::EInvalidListEnd(StreamReference reference)
@@ -166,7 +109,10 @@ EInvalidListEnd::EInvalidListEnd(StreamReference reference)
     this->reference = reference;
 }
 
-char const *EInvalidListEnd::get_exception_msg() { return "Invalid list end"; }
+char const *EInvalidListEnd::get_exception_msg()
+{
+    return "Incorrectly formatted list";
+}
 
 ENoReplacementIdentifier::ENoReplacementIdentifier(StreamReference reference)
 {
@@ -175,7 +121,7 @@ ENoReplacementIdentifier::ENoReplacementIdentifier(StreamReference reference)
 
 char const *ENoReplacementIdentifier::get_exception_msg()
 {
-    return "No replacement identifier";
+    return "Missing variable name for replacement";
 }
 
 ENoReplacementOriginal::ENoReplacementOriginal(StreamReference reference)
@@ -185,7 +131,7 @@ ENoReplacementOriginal::ENoReplacementOriginal(StreamReference reference)
 
 char const *ENoReplacementOriginal::get_exception_msg()
 {
-    return "No replacement original";
+    return "Missing original value for replacement";
 }
 
 ENoReplacementArrow::ENoReplacementArrow(StreamReference reference)
@@ -195,7 +141,7 @@ ENoReplacementArrow::ENoReplacementArrow(StreamReference reference)
 
 char const *ENoReplacementArrow::get_exception_msg()
 {
-    return "No replacement arrow";
+    return "Missing the `->`";
 }
 
 ENoReplacementReplacement::ENoReplacementReplacement(StreamReference reference)
@@ -205,7 +151,7 @@ ENoReplacementReplacement::ENoReplacementReplacement(StreamReference reference)
 
 char const *ENoReplacementReplacement::get_exception_msg()
 {
-    return "No replacement replacement";
+    return "Missing a replacement value";
 }
 
 EInvalidEscapedExpression::EInvalidEscapedExpression(StreamReference reference)
@@ -225,7 +171,7 @@ ENoExpressionClose::ENoExpressionClose(StreamReference reference)
 
 char const *ENoExpressionClose::get_exception_msg()
 {
-    return "No expression close";
+    return "Expression not closed";
 }
 
 EEmptyExpression::EEmptyExpression(StreamReference reference)
@@ -234,13 +180,6 @@ EEmptyExpression::EEmptyExpression(StreamReference reference)
 }
 
 char const *EEmptyExpression::get_exception_msg() { return "Empty expression"; }
-
-EInvalidInputFile::EInvalidInputFile(std::string path) { this->path = path; }
-
-char const *EInvalidInputFile::get_exception_msg()
-{
-    return "Invalid input file";
-}
 
 EInvalidEscapeCode::EInvalidEscapeCode(unsigned char code,
                                        StreamReference reference)
@@ -252,27 +191,6 @@ EInvalidEscapeCode::EInvalidEscapeCode(unsigned char code,
 char const *EInvalidEscapeCode::get_exception_msg()
 {
     return "Invalid escape code";
-}
-
-ERecursiveVariable::ERecursiveVariable(Identifier identifier)
-{
-    this->identifier = identifier;
-}
-
-char const *ERecursiveVariable::get_exception_msg()
-{
-    return "Recursive variable initialized";
-}
-
-ERecursiveTask::ERecursiveTask(Task task, std::string dependency_value)
-{
-    this->task = task;
-    this->dependency_value = dependency_value;
-}
-
-char const *ERecursiveTask::get_exception_msg()
-{
-    return "Recursive task built";
 }
 
 std::unordered_map<size_t, std::shared_ptr<BuildError>>
@@ -287,7 +205,6 @@ ErrorHandler::get_errors()
 
 template <typename B> void ErrorHandler::halt [[noreturn]] (B build_error)
 {
-    ContextStack::freeze();
     std::thread::id thread_id = std::this_thread::get_id();
     size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
 
@@ -298,7 +215,6 @@ template <typename B> void ErrorHandler::halt [[noreturn]] (B build_error)
 
 template <typename B> void ErrorHandler::soft_report(B build_error)
 {
-    ContextStack::freeze();
     std::thread::id thread_id = std::this_thread::get_id();
     size_t thread_hash = std::hash<std::thread::id>{}(thread_id);
 
@@ -306,17 +222,6 @@ template <typename B> void ErrorHandler::soft_report(B build_error)
     ErrorHandler::error_state[thread_hash] = std::make_unique<B>(build_error);
 }
 
-void ErrorHandler::trigger_report [[noreturn]] ()
-{
-    std::unique_lock<std::mutex> guard(ErrorHandler::error_lock);
-    assert(ErrorHandler::error_state.size() > 0 &&
-           "attempt to trigger a report on an empty error state");
-    std::shared_ptr<BuildError> build_error =
-        ErrorHandler::error_state.begin()->second;
-    throw BuildException(build_error->get_exception_msg());
-}
-
-template void ErrorHandler::halt<ENoMatchingIdentifier>(ENoMatchingIdentifier);
 template void ErrorHandler::halt<EInvalidSymbol>(EInvalidSymbol);
 template void ErrorHandler::halt<EInvalidLiteral>(EInvalidLiteral);
 template void ErrorHandler::halt<EInvalidGrammar>(EInvalidGrammar);
@@ -337,16 +242,7 @@ template void
     ErrorHandler::halt<EInvalidEscapedExpression>(EInvalidEscapedExpression);
 template void ErrorHandler::halt<ENoExpressionClose>(ENoExpressionClose);
 template void ErrorHandler::halt<EEmptyExpression>(EEmptyExpression);
-template void ErrorHandler::halt<ENoTasks>(ENoTasks);
-template void ErrorHandler::halt<ETaskNotFound>(ETaskNotFound);
-template void ErrorHandler::halt<EAmbiguousTask>(EAmbiguousTask);
-template void ErrorHandler::halt<ENonZeroProcess>(ENonZeroProcess);
-template void ErrorHandler::halt<EInvalidInputFile>(EInvalidInputFile);
 template void ErrorHandler::halt<EInvalidEscapeCode>(EInvalidEscapeCode);
-template void ErrorHandler::halt<ERecursiveVariable>(ERecursiveVariable);
-template void ErrorHandler::halt<ERecursiveTask>(ERecursiveTask);
-template void
-    ErrorHandler::soft_report<ENoMatchingIdentifier>(ENoMatchingIdentifier);
 template void ErrorHandler::soft_report<EInvalidSymbol>(EInvalidSymbol);
 template void ErrorHandler::soft_report<EInvalidLiteral>(EInvalidLiteral);
 template void ErrorHandler::soft_report<EInvalidGrammar>(EInvalidGrammar);
@@ -368,51 +264,4 @@ template void ErrorHandler::soft_report<EInvalidEscapedExpression>(
     EInvalidEscapedExpression);
 template void ErrorHandler::soft_report<ENoExpressionClose>(ENoExpressionClose);
 template void ErrorHandler::soft_report<EEmptyExpression>(EEmptyExpression);
-template void ErrorHandler::soft_report<ENoTasks>(ENoTasks);
-template void ErrorHandler::soft_report<ETaskNotFound>(ETaskNotFound);
-template void ErrorHandler::soft_report<EAmbiguousTask>(EAmbiguousTask);
-template void ErrorHandler::soft_report<ENonZeroProcess>(ENonZeroProcess);
-template void ErrorHandler::soft_report<EInvalidInputFile>(EInvalidInputFile);
 template void ErrorHandler::soft_report<EInvalidEscapeCode>(EInvalidEscapeCode);
-template void ErrorHandler::soft_report<ERecursiveVariable>(ERecursiveVariable);
-template void ErrorHandler::soft_report<ERecursiveTask>(ERecursiveTask);
-
-//
-// ErrorContext::ErrorContext(Origin const &origin) {
-//   if (std::holds_alternative<InputStreamPos>(origin)) {
-//     this->stream_pos = std::get<InputStreamPos>(origin);
-//     this->ref = std::nullopt;
-//   } else if (std::holds_alternative<ObjectReference>(origin)) {
-//     this->stream_pos = std::nullopt;
-//     this->ref = std::get<ObjectReference>(origin);
-//   } else {
-//     this->stream_pos = std::nullopt;
-//     this->ref = std::nullopt;
-//   }
-// }
-//
-// ErrorContext::ErrorContext(InternalNode const &) {
-//   this->stream_pos = std::nullopt;
-//   this->ref = std::nullopt;
-// }
-//
-// ErrorContext::ErrorContext(ObjectReference const &ref) {
-//   this->stream_pos = std::nullopt;
-//   this->ref = ref;
-// }
-//
-// ErrorContext::ErrorContext(Origin const &origin, ObjectReference const
-// &ref)
-// {
-//   if (std::holds_alternative<InputStreamPos>(origin)) {
-//     this->stream_pos = std::get<InputStreamPos>(origin);
-//     this->ref = std::nullopt;
-//   } else if (std::holds_alternative<ObjectReference>(origin)) {
-//     this->stream_pos = std::nullopt;
-//     this->ref = std::get<ObjectReference>(origin);
-//   } else {
-//     this->stream_pos = std::nullopt;
-//     this->ref = std::nullopt;
-//   }
-//   this->ref = ref;
-// }

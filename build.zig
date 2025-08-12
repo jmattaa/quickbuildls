@@ -24,7 +24,7 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibC();
 
     const cflags = [_][]const u8{};
-    const cppflags = [_][]const u8{"--std=c++17"};
+    const cppflags = [_][]const u8{"--std=c++20"};
 
     try buildutils.addSourceRecursive(
         allocator,
