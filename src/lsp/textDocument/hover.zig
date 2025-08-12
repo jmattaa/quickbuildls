@@ -50,12 +50,19 @@ pub fn respond(
         .id = req.id,
     };
 
-    const md = get_hover_md(
-        allocator,
-        state,
+    const boffset = utils.lineCharToOffset(
         document,
         req.params.position.line,
         req.params.position.character,
+    );
+    const ident = try utils.getIdent(document, boffset);
+
+    const md = get_hover_md(
+        allocator,
+        state,
+        ident,
+        boffset,
+        document,
     ) catch return .{
         .jsonrpc = "2.0",
         .id = req.id,
@@ -69,6 +76,16 @@ pub fn respond(
                 .contents = .{
                     .kind = "markdown",
                     .value = val,
+                },
+                .range = .{
+                    .start = .{
+                        .line = req.params.position.line,
+                        .character = req.params.position.character,
+                    },
+                    .end = .{
+                        .line = req.params.position.line,
+                        .character = req.params.position.character,
+                    },
                 },
             },
         };
@@ -89,14 +106,10 @@ pub fn deinit(res: response, allocator: std.mem.Allocator) void {
 pub fn get_hover_md(
     allocator: std.mem.Allocator,
     state: State,
+    ident: []const u8,
+    boffset: usize,
     src: []const u8,
-    l: u32,
-    c: u32,
 ) !?[]const u8 {
-    const boffset = utils.lineCharToOffset(src, l, c);
-
-    const ident = try utils.getIndent(src, boffset);
-
     if (state.cstate) |s| {
         for (0..s.nfields) |i| {
             const f = s.fields[i];

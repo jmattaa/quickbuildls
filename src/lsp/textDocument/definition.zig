@@ -89,7 +89,7 @@ fn get_definition(
     if (boffset >= src.len)
         return;
 
-    const ident = try utils.getIndent(src, boffset);
+    const ident = try utils.getIdent(src, boffset);
     if (utils.isKeyword(ident))
         return error.NotFound;
 

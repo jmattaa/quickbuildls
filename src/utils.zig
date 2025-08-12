@@ -78,7 +78,7 @@ pub fn isKeyword(s: []const u8) bool {
     return if (quickbuildls.is_keyword(buf[0 .. s.len + 1].ptr) == 1) true else false;
 }
 
-pub fn getIndent(
+pub fn getIdent(
     src: []const u8,
     off: usize,
 ) error{NotFound}![]const u8 {
