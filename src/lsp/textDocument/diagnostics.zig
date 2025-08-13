@@ -17,11 +17,11 @@ pub const notif = struct {
     params: struct {
         uri: []const u8,
         version: ?i64 = null,
-        diagnostics: []diagnostics,
+        diagnostics: []diagnostic,
     },
 };
 
-pub const diagnostics = struct {
+pub const diagnostic = struct {
     range: lsputils.range,
     severity: ?u8 = null,
     source: ?[]const u8 = null,
@@ -37,7 +37,7 @@ pub fn trypush(
 ) !void {
     if (state.document == null) return;
     if (state.cstate) |cs| {
-        var d = std.ArrayList(diagnostics).init(allocator);
+        var d = std.ArrayList(diagnostic).init(allocator);
 
         if (cs.errs) |errs| {
             const errs_slice = errs[0..cs.nerrs];

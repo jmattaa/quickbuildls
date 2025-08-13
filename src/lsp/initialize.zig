@@ -8,6 +8,7 @@ pub const initializeresponse = struct {
             textDocumentSync: u8,
             hoverProvider: bool,
             definitionProvider: bool,
+            codeActionProvider: bool,
             completionProvider: struct {},
         },
         serverInfo: struct {
@@ -30,6 +31,7 @@ pub fn respond(id: u32) initializeresponse {
                 .textDocumentSync = 1, // full
                 .hoverProvider = true,
                 .definitionProvider = true,
+                .codeActionProvider = true,
                 .completionProvider = .{}, // just say we want to do completions
             },
             .serverInfo = .{
