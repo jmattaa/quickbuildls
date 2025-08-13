@@ -29,157 +29,39 @@
 
 #include "errors.hpp"
 #include "tracking.hpp"
-#include <algorithm>
 #include <cassert>
-#include <cmath>
-#include <format>
-#include <iostream>
 #include <memory>
 #include <thread>
-#include <variant>
+
+#define MAKE_CONSTRUCTOR(name, ...)                                            \
+    name::name(StreamReference reference) { this->reference = reference; }
+E_STANDARD_ITER(MAKE_CONSTRUCTOR)
+#undef MAKE_CONSTRUCTOR
+
+#define GET_EXPECTION_MSG(name, msg, ...)                                      \
+    char const *name::get_exception_msg() { return msg; }
+E_STANDARD_ITER(GET_EXPECTION_MSG)
+#undef GET_EXPECTION_MSG
+
+#define GET_CODE(name, ...)                                                    \
+    ErrorCode name::get_code() const { return ErrorCode::_##name; }
+E_STANDARD_ITER(GET_CODE)
+#undef GET_CODE
 
 EInvalidSymbol::EInvalidSymbol(StreamReference reference, std::string symbol)
 {
     this->reference = reference;
     this->symbol = symbol;
 }
-
-char const *EInvalidSymbol::get_exception_msg()
+char const *EInvalidSymbol::get_exception_msg() { return "Invalid symbol"; }
+ErrorCode EInvalidSymbol::get_code() const
 {
-    return std::format("Invalid symbol: {}", this->symbol).c_str();
+    return ErrorCode::_EInvalidSymbol;
 }
-
-EInvalidLiteral::EInvalidLiteral(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *EInvalidLiteral::get_exception_msg() { return "Invalid literal"; }
-
-EInvalidGrammar::EInvalidGrammar(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *EInvalidGrammar::get_exception_msg() { return "Invalid grammar"; }
 
 ENoValue::ENoValue(Identifier identifier) { this->identifier = identifier; }
-
-char const *ENoValue::get_exception_msg() { return "No valid value"; }
-
-ENoLinestop::ENoLinestop(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoLinestop::get_exception_msg()
-{
-    return "Missing semicolon at end of line";
-}
-
-ENoIterator::ENoIterator(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoIterator::get_exception_msg() { return "No task iterator"; }
-
-ENoTaskOpen::ENoTaskOpen(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoTaskOpen::get_exception_msg()
-{
-    return "Missing opening curly bracket";
-}
-
-ENoTaskClose::ENoTaskClose(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoTaskClose::get_exception_msg()
-{
-    return "Missing closing curly bracket";
-}
-
-EInvalidListEnd::EInvalidListEnd(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *EInvalidListEnd::get_exception_msg()
-{
-    return "Incorrectly formatted list";
-}
-
-ENoReplacementIdentifier::ENoReplacementIdentifier(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoReplacementIdentifier::get_exception_msg()
-{
-    return "Missing variable name for replacement";
-}
-
-ENoReplacementOriginal::ENoReplacementOriginal(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoReplacementOriginal::get_exception_msg()
-{
-    return "Missing original value for replacement";
-}
-
-ENoReplacementArrow::ENoReplacementArrow(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoReplacementArrow::get_exception_msg()
-{
-    return "Missing the `->`";
-}
-
-ENoReplacementReplacement::ENoReplacementReplacement(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoReplacementReplacement::get_exception_msg()
-{
-    return "Missing a replacement value";
-}
-
-EInvalidEscapedExpression::EInvalidEscapedExpression(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *EInvalidEscapedExpression::get_exception_msg()
-{
-    return "Invalid escaped expression";
-}
-
-ENoExpressionClose::ENoExpressionClose(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *ENoExpressionClose::get_exception_msg()
-{
-    return "Expression not closed";
-}
-
-EEmptyExpression::EEmptyExpression(StreamReference reference)
-{
-    this->reference = reference;
-}
-
-char const *EEmptyExpression::get_exception_msg() { return "Empty expression"; }
+char const *ENoValue::get_exception_msg() { return "Invalid value"; }
+ErrorCode ENoValue::get_code() const { return ErrorCode::_ENoValue; }
 
 EInvalidEscapeCode::EInvalidEscapeCode(unsigned char code,
                                        StreamReference reference)
@@ -187,10 +69,13 @@ EInvalidEscapeCode::EInvalidEscapeCode(unsigned char code,
     this->code = code;
     this->reference = reference;
 }
-
 char const *EInvalidEscapeCode::get_exception_msg()
 {
     return "Invalid escape code";
+}
+ErrorCode EInvalidEscapeCode::get_code() const
+{
+    return ErrorCode::_EInvalidEscapeCode;
 }
 
 std::unordered_map<size_t, std::shared_ptr<BuildError>>
@@ -222,46 +107,15 @@ template <typename B> void ErrorHandler::soft_report(B build_error)
     ErrorHandler::error_state[thread_hash] = std::make_unique<B>(build_error);
 }
 
+#define _X(name, ...)                                                          \
+    template void ErrorHandler::halt<name>(name);                              \
+    template void ErrorHandler::soft_report<name>(name);
+E_STANDARD_ITER(_X)
+#undef _X
+
 template void ErrorHandler::halt<EInvalidSymbol>(EInvalidSymbol);
-template void ErrorHandler::halt<EInvalidLiteral>(EInvalidLiteral);
-template void ErrorHandler::halt<EInvalidGrammar>(EInvalidGrammar);
 template void ErrorHandler::halt<ENoValue>(ENoValue);
-template void ErrorHandler::halt<ENoLinestop>(ENoLinestop);
-template void ErrorHandler::halt<ENoIterator>(ENoIterator);
-template void ErrorHandler::halt<ENoTaskOpen>(ENoTaskOpen);
-template void ErrorHandler::halt<ENoTaskClose>(ENoTaskClose);
-template void ErrorHandler::halt<EInvalidListEnd>(EInvalidListEnd);
-template void
-    ErrorHandler::halt<ENoReplacementIdentifier>(ENoReplacementIdentifier);
-template void
-    ErrorHandler::halt<ENoReplacementOriginal>(ENoReplacementOriginal);
-template void ErrorHandler::halt<ENoReplacementArrow>(ENoReplacementArrow);
-template void
-    ErrorHandler::halt<ENoReplacementReplacement>(ENoReplacementReplacement);
-template void
-    ErrorHandler::halt<EInvalidEscapedExpression>(EInvalidEscapedExpression);
-template void ErrorHandler::halt<ENoExpressionClose>(ENoExpressionClose);
-template void ErrorHandler::halt<EEmptyExpression>(EEmptyExpression);
 template void ErrorHandler::halt<EInvalidEscapeCode>(EInvalidEscapeCode);
 template void ErrorHandler::soft_report<EInvalidSymbol>(EInvalidSymbol);
-template void ErrorHandler::soft_report<EInvalidLiteral>(EInvalidLiteral);
-template void ErrorHandler::soft_report<EInvalidGrammar>(EInvalidGrammar);
 template void ErrorHandler::soft_report<ENoValue>(ENoValue);
-template void ErrorHandler::soft_report<ENoLinestop>(ENoLinestop);
-template void ErrorHandler::soft_report<ENoIterator>(ENoIterator);
-template void ErrorHandler::soft_report<ENoTaskOpen>(ENoTaskOpen);
-template void ErrorHandler::soft_report<ENoTaskClose>(ENoTaskClose);
-template void ErrorHandler::soft_report<EInvalidListEnd>(EInvalidListEnd);
-template void ErrorHandler::soft_report<ENoReplacementIdentifier>(
-    ENoReplacementIdentifier);
-template void
-    ErrorHandler::soft_report<ENoReplacementOriginal>(ENoReplacementOriginal);
-template void
-    ErrorHandler::soft_report<ENoReplacementArrow>(ENoReplacementArrow);
-template void ErrorHandler::soft_report<ENoReplacementReplacement>(
-    ENoReplacementReplacement);
-template void ErrorHandler::soft_report<EInvalidEscapedExpression>(
-    EInvalidEscapedExpression);
-template void ErrorHandler::soft_report<ENoExpressionClose>(ENoExpressionClose);
-template void ErrorHandler::soft_report<EEmptyExpression>(EEmptyExpression);
 template void ErrorHandler::soft_report<EInvalidEscapeCode>(EInvalidEscapeCode);
