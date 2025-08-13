@@ -11,7 +11,6 @@
 #include "quickbuildls.hpp"
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -52,6 +51,7 @@ extern "C" void qls_state_update(qls_state *s, const char *csrc)
             s->errs[i]->msg = strdup(tmp->errs[i]->msg);
             s->errs[i]->offset = tmp->errs[i]->offset;
             s->errs[i]->endoffset = tmp->errs[i]->endoffset;
+            s->errs[i]->code = tmp->errs[i]->code;
         }
     }
     else
@@ -109,6 +109,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
                 s->errs[i]->offset = ref.index;
                 s->errs[i]->endoffset = ref.index + ref.length;
             }
+            s->errs[i]->code = err->get_code();
 
             i++;
         }

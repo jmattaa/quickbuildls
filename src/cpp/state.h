@@ -6,6 +6,7 @@
 #ifndef QUICKBUILDLS_STATE_H
 #define QUICKBUILDLS_STATE_H
 
+#include "errors.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -43,6 +44,7 @@ extern "C"
         char *msg;
         size_t offset;
         size_t endoffset;
+        ErrorCode code;
     } qls_err;
 
     // resembles the AST object in quickbuild

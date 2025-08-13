@@ -27,33 +27,20 @@
 
 class BuildError;
 
-#include "lexer.hpp"
+#include "../errors.h"
 #include "parser.hpp"
 #include "tracking.hpp"
-#include <map>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <string>
-#include <vector>
 
 class BuildError
 {
   public:
     virtual char const *get_exception_msg() = 0;
     virtual ~BuildError() = default;
+    virtual ErrorCode get_code() const = 0;
 };
-
-// class ENoFieldNorDefault : public BuildError {
-// private:
-//   std::string field_name;
-//
-// public:
-//   std::string render_error(std::vector<unsigned char> config) override;
-//   char const *get_exception_msg() override;
-//   ENoFieldNorDefault() = delete;
-//   ENoFieldNorDefault(std::string);
-// };
 
 class EWithStreamReference
 {
@@ -61,6 +48,24 @@ class EWithStreamReference
     virtual const StreamReference &get_reference() const = 0;
     virtual ~EWithStreamReference() = default;
 };
+
+#define _X(name, ...)                                                          \
+    class name : public BuildError, public EWithStreamReference                \
+    {                                                                          \
+      public:                                                                  \
+        StreamReference reference;                                             \
+        char const *get_exception_msg() override;                              \
+        name() = delete;                                                       \
+        name(StreamReference);                                                 \
+        ErrorCode get_code() const override { return ErrorCode::_##name; };    \
+                                                                               \
+        virtual const StreamReference &get_reference() const override          \
+        {                                                                      \
+            return reference;                                                  \
+        };                                                                     \
+    };
+E_STANDARD_ITER(_X)
+#undef _X
 
 class EInvalidSymbol : public BuildError, public EWithStreamReference
 {
@@ -73,33 +78,10 @@ class EInvalidSymbol : public BuildError, public EWithStreamReference
     EInvalidSymbol() = delete;
     EInvalidSymbol(StreamReference, std::string);
 
-    virtual const StreamReference &get_reference() const override
+    virtual ErrorCode get_code() const override
     {
-        return reference;
+        return ErrorCode::_EInvalidSymbol;
     };
-};
-
-class EInvalidGrammar : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    EInvalidGrammar() = delete;
-    EInvalidGrammar(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class EInvalidLiteral : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    EInvalidLiteral() = delete;
-    EInvalidLiteral(StreamReference);
 
     virtual const StreamReference &get_reference() const override
     {
@@ -116,174 +98,10 @@ class ENoValue : public BuildError
     char const *get_exception_msg() override;
     ENoValue() = delete;
     ENoValue(Identifier);
-};
 
-class ENoLinestop : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoLinestop() = delete;
-    ENoLinestop(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
+    virtual ErrorCode get_code() const override
     {
-        return reference;
-    };
-};
-
-class ENoIterator : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoIterator() = delete;
-    ENoIterator(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class ENoTaskOpen : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoTaskOpen() = delete;
-    ENoTaskOpen(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class ENoTaskClose : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoTaskClose() = delete;
-    ENoTaskClose(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-// todo: revisit this.
-class EInvalidListEnd : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    EInvalidListEnd() = delete;
-    EInvalidListEnd(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class ENoReplacementIdentifier : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoReplacementIdentifier() = delete;
-    ENoReplacementIdentifier(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class ENoReplacementOriginal : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoReplacementOriginal() = delete;
-    ENoReplacementOriginal(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class ENoReplacementArrow : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoReplacementArrow() = delete;
-    ENoReplacementArrow(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class ENoReplacementReplacement : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoReplacementReplacement() = delete;
-    ENoReplacementReplacement(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class EInvalidEscapedExpression : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    EInvalidEscapedExpression() = delete;
-    EInvalidEscapedExpression(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class ENoExpressionClose : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    ENoExpressionClose() = delete;
-    ENoExpressionClose(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
-    };
-};
-
-class EEmptyExpression : public BuildError, public EWithStreamReference
-{
-  public:
-    StreamReference reference;
-    char const *get_exception_msg() override;
-    EEmptyExpression() = delete;
-    EEmptyExpression(StreamReference);
-
-    virtual const StreamReference &get_reference() const override
-    {
-        return reference;
+        return ErrorCode::_ENoValue;
     };
 };
 
@@ -297,6 +115,11 @@ class EInvalidEscapeCode : public BuildError, public EWithStreamReference
     char const *get_exception_msg() override;
     EInvalidEscapeCode() = delete;
     EInvalidEscapeCode(unsigned char, StreamReference);
+
+    virtual ErrorCode get_code() const override
+    {
+        return ErrorCode::_EInvalidEscapeCode;
+    };
 
     virtual const StreamReference &get_reference() const override
     {

@@ -177,5 +177,13 @@ pub fn handleMsg(
             State,
             out,
         );
+    } else if (std.mem.eql(u8, decoded.value.method, "textDocument/codeAction")) {
+        try lsp.respond(
+            allocator,
+            lsp.textDocument.codeAction,
+            content,
+            State,
+            out,
+        );
     }
 }

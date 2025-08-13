@@ -25,7 +25,11 @@ pub const response = struct {
     } = null,
 };
 
-pub fn respond(allocator: std.mem.Allocator, req: request, state: State) !response {
+pub fn respond(
+    allocator: std.mem.Allocator,
+    req: request,
+    state: State,
+) !response {
     const document = state.document orelse return .{
         // we don have nothing to give
         .jsonrpc = "2.0",
