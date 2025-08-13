@@ -37,7 +37,7 @@ pub const actionResult = struct {
     title: []const u8,
     diagnostics: ?[]lspdiagnostics.diagnostic = null,
     edit: ?struct {
-        changes: ?std.StringHashMap(textEdit) = null,
+        changes: ?std.StringHashMap([]textEdit) = null,
     } = null,
 
     pub fn jsonStringify(self: actionResult, jw: anytype) !void {
@@ -120,6 +120,9 @@ pub fn deinit(r: response, allocator: std.mem.Allocator) void {
         for (result) |*action| {
             if (action.edit) |*edit| {
                 if (edit.changes) |*changes| {
+                    var it = changes.iterator();
+                    while (it.next()) |kv|
+                        allocator.free(kv.value_ptr.*);
                     changes.deinit();
                 }
             }
@@ -141,14 +144,16 @@ fn getErrorAction(
         diagnostic.message,
         "Missing semicolon at end of line",
     )) {
-        var map = std.StringHashMap(textEdit).init(allocator);
-        map.put(uri, .{
+        var map = std.StringHashMap([]textEdit).init(allocator);
+        var edits = allocator.alloc(textEdit, 1) catch return null;
+        edits[0] = .{
             .range = .{
                 .start = diagnostic.range.end,
                 .end = diagnostic.range.end,
             },
             .newText = ";",
-        }) catch return null;
+        };
+        map.put(uri, edits) catch return null;
 
         const diagnostics = allocator.alloc(
             lspdiagnostics.diagnostic,
