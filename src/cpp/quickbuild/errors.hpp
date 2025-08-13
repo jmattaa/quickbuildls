@@ -27,19 +27,19 @@
 
 class BuildError;
 
+#include "../errors.h"
 #include "parser.hpp"
 #include "tracking.hpp"
 #include <memory>
 #include <mutex>
 #include <string>
-#include "../errors.h"
 
 class BuildError
 {
   public:
     virtual char const *get_exception_msg() = 0;
     virtual ~BuildError() = default;
-    ErrorCode get_code() const;
+    virtual ErrorCode get_code() const = 0;
 };
 
 class EWithStreamReference
@@ -57,7 +57,7 @@ class EWithStreamReference
         char const *get_exception_msg() override;                              \
         name() = delete;                                                       \
         name(StreamReference);                                                 \
-        ErrorCode get_code() const;                                            \
+        ErrorCode get_code() const override { return ErrorCode::_##name; };    \
                                                                                \
         virtual const StreamReference &get_reference() const override          \
         {                                                                      \
@@ -77,7 +77,11 @@ class EInvalidSymbol : public BuildError, public EWithStreamReference
     char const *get_exception_msg() override;
     EInvalidSymbol() = delete;
     EInvalidSymbol(StreamReference, std::string);
-    ErrorCode get_code() const;
+
+    virtual ErrorCode get_code() const override
+    {
+        return ErrorCode::_EInvalidSymbol;
+    };
 
     virtual const StreamReference &get_reference() const override
     {
@@ -94,7 +98,11 @@ class ENoValue : public BuildError
     char const *get_exception_msg() override;
     ENoValue() = delete;
     ENoValue(Identifier);
-    ErrorCode get_code() const;
+
+    virtual ErrorCode get_code() const override
+    {
+        return ErrorCode::_ENoValue;
+    };
 };
 
 class EInvalidEscapeCode : public BuildError, public EWithStreamReference
@@ -107,7 +115,11 @@ class EInvalidEscapeCode : public BuildError, public EWithStreamReference
     char const *get_exception_msg() override;
     EInvalidEscapeCode() = delete;
     EInvalidEscapeCode(unsigned char, StreamReference);
-    ErrorCode get_code() const;
+
+    virtual ErrorCode get_code() const override
+    {
+        return ErrorCode::_EInvalidEscapeCode;
+    };
 
     virtual const StreamReference &get_reference() const override
     {

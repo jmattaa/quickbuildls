@@ -43,25 +43,15 @@ E_STANDARD_ITER(MAKE_CONSTRUCTOR)
 E_STANDARD_ITER(GET_EXPECTION_MSG)
 #undef GET_EXPECTION_MSG
 
-#define GET_CODE(name, ...)                                                    \
-    ErrorCode name::get_code() const { return ErrorCode::_##name; }
-E_STANDARD_ITER(GET_CODE)
-#undef GET_CODE
-
 EInvalidSymbol::EInvalidSymbol(StreamReference reference, std::string symbol)
 {
     this->reference = reference;
     this->symbol = symbol;
 }
 char const *EInvalidSymbol::get_exception_msg() { return "Invalid symbol"; }
-ErrorCode EInvalidSymbol::get_code() const
-{
-    return ErrorCode::_EInvalidSymbol;
-}
 
 ENoValue::ENoValue(Identifier identifier) { this->identifier = identifier; }
 char const *ENoValue::get_exception_msg() { return "Invalid value"; }
-ErrorCode ENoValue::get_code() const { return ErrorCode::_ENoValue; }
 
 EInvalidEscapeCode::EInvalidEscapeCode(unsigned char code,
                                        StreamReference reference)
@@ -72,10 +62,6 @@ EInvalidEscapeCode::EInvalidEscapeCode(unsigned char code,
 char const *EInvalidEscapeCode::get_exception_msg()
 {
     return "Invalid escape code";
-}
-ErrorCode EInvalidEscapeCode::get_code() const
-{
-    return ErrorCode::_EInvalidEscapeCode;
 }
 
 std::unordered_map<size_t, std::shared_ptr<BuildError>>

@@ -4,6 +4,10 @@ const State = @import("../../state.zig").State;
 const lsputils = @import("../lsputils.zig");
 const lspdiagnostics = @import("./diagnostics.zig");
 
+const c = @cImport({
+    @cInclude("errors.h");    
+});
+
 pub const request = struct {
     jsonrpc: []const u8,
     method: []const u8,
@@ -139,33 +143,32 @@ fn getErrorAction(
     uri: []const u8,
     diagnostic: lspdiagnostics.diagnostic,
 ) ?actionResult {
-    if (std.mem.eql(
-        u8,
-        diagnostic.message,
-        "Missing semicolon at end of line",
-    )) {
-        var map = std.StringHashMap([]textEdit).init(allocator);
-        var edits = allocator.alloc(textEdit, 1) catch return null;
-        edits[0] = .{
-            .range = .{
-                .start = diagnostic.range.end,
-                .end = diagnostic.range.end,
-            },
-            .newText = ";",
-        };
-        map.put(uri, edits) catch return null;
+    switch (diagnostic.code) {
+        c._ENoLinestop => {
+            var map = std.StringHashMap([]textEdit).init(allocator);
+            var edits = allocator.alloc(textEdit, 1) catch return null;
+            edits[0] = .{
+                .range = .{
+                    .start = diagnostic.range.end,
+                    .end = diagnostic.range.end,
+                },
+                .newText = ";",
+            };
+            map.put(uri, edits) catch return null;
 
-        const diagnostics = allocator.alloc(
-            lspdiagnostics.diagnostic,
-            1,
-        ) catch return null;
-        diagnostics[0] = diagnostic;
+            const diagnostics = allocator.alloc(
+                lspdiagnostics.diagnostic,
+                1,
+            ) catch return null;
+            diagnostics[0] = diagnostic;
 
-        return .{
-            .title = "Add semicolon",
-            .diagnostics = diagnostics,
-            .edit = .{ .changes = map },
-        };
+            return .{
+                .title = "Add semicolon",
+                .diagnostics = diagnostics,
+                .edit = .{ .changes = map },
+            };
+        },
+        else => return null,
     }
     return null;
 }

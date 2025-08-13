@@ -24,6 +24,7 @@ pub const notif = struct {
 pub const diagnostic = struct {
     range: lsputils.range,
     severity: ?u8 = null,
+    code: c_uint, // in the spec is this optional but we need it for err identification
     source: ?[]const u8 = null,
     message: []const u8,
 };
@@ -64,6 +65,7 @@ pub fn trypush(
                             },
                         },
                         .severity = DIAGNOSTIC_Error,
+                        .code = e.*.code,
                         .source = "quickbuildls",
                         .message = std.mem.span(msg),
                     });
