@@ -10,14 +10,14 @@ lflagsrel = "-O3 [lflags]";
 
 srcs = "src/*.c";
 devobjs = srcs: "src/*.c" -> "build/dev/*.o";
-relobjs = srcs: "src/*.c" -> "build/rel/*.o";
+relobjs = var: "src/*.c" -> "build/rel/*.o";
 
 headers = "include/*.h";
 
 dev_exec = "servc";
 rel_exec = "build/rel/servc";
 
-"dev" {
+"dev" { 
     depends = "srcs", "headers", "build_devobjs";
     run = "[cc] [cflagsdev] -o [dev_exec] [devobjs]";
 }
