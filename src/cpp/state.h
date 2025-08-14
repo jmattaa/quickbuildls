@@ -26,6 +26,7 @@ extern "C"
         char *name;
         enum qls_objtype type;
         int offset;
+        int endoffset;
 
         // `QLS_FIELD`: it will be the value of the field
         //

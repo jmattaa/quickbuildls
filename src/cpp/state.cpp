@@ -122,6 +122,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         qls_obj *f = &s->fields[i];
         f->type = QLS_FIELD;
         f->offset = ast.fields[i].reference.index;
+        f->endoffset = f->offset + ast.fields[i].reference.length;
 
         f->name = strdup(ast.fields[i].identifier.content.c_str());
         f->quotedname =
@@ -137,6 +138,7 @@ static bool qls_state_set(qls_state *s, const char *csrc)
         qls_obj *t = &s->tasks[i];
         t->type = QLS_TASK;
         t->offset = ast.tasks[i].reference.index;
+        t->endoffset = t->offset + ast.tasks[i].reference.length;
 
         bool iter_has_value = ast.tasks[i].iterator.content != "__task__";
         if (iter_has_value)
@@ -164,6 +166,8 @@ static bool qls_state_set(qls_state *s, const char *csrc)
             qls_obj *f = &t->fields[j];
             f->type = QLS_FIELD;
             f->offset = ast.tasks[i].fields[j].reference.index;
+            f->endoffset = f->offset + ast.tasks[i].fields[j].reference.length;
+
             f->name = strdup(ast.tasks[i].fields[j].identifier.content.c_str());
             f->value = strdup(
                 std::visit(ASTVisitContent{}, ast.tasks[i].fields[j].expression)

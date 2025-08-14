@@ -1,8 +1,8 @@
 #ifndef QUICKBUILDLS_C_H
 #define QUICKBUILDLS_C_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #define KEYWORDS(_X)                                                           \
@@ -20,6 +20,7 @@
 // defined in lexer.cpp
 bool is_alphanumeric(char x);
 
+// quickbuildls.c
 uint8_t is_keyword(const char *s);
 const char *get_keyword_desc(const char *k);
 
