@@ -10,6 +10,7 @@ pub const initializeresponse = struct {
             definitionProvider: bool,
             codeActionProvider: bool,
             completionProvider: struct {},
+            documentFormattingProvider: bool,
         },
         serverInfo: struct {
             name: []const u8,
@@ -33,6 +34,7 @@ pub fn respond(id: u32) initializeresponse {
                 .definitionProvider = true,
                 .codeActionProvider = true,
                 .completionProvider = .{}, // just say we want to do completions
+                .documentFormattingProvider = true,
             },
             .serverInfo = .{
                 .name = "quickbuildls",

@@ -7,3 +7,8 @@ pub const range = struct {
     start: position,
     end: position,
 };
+
+pub const textEdit = struct {
+    range: range,
+    newText: []const u8,
+};
