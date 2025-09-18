@@ -39,6 +39,7 @@ pub fn trypush(
     if (state.document == null) return;
     if (state.cstate) |cs| {
         var d = std.array_list.Managed(diagnostic).init(allocator);
+        defer d.deinit();
 
         if (cs.errs) |errs| {
             const errs_slice = errs[0..cs.nerrs];

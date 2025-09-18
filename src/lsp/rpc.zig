@@ -28,6 +28,7 @@ pub fn encode(allocator: std.mem.Allocator, msg: anytype) ![]const u8 {
     try fmt.format(&jsonWriter.writer);
 
     const str = try jsonWriter.toOwnedSlice();
+    defer allocator.free(str);
 
     const len_str = try std.fmt.allocPrint(allocator, "{}", .{str.len});
     defer allocator.free(len_str);
