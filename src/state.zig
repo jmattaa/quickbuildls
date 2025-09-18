@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const cstate = @cImport({
+pub const cstate = @cImport({
     @cInclude("state.h");
 });
 
