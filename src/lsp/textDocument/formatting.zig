@@ -31,7 +31,7 @@ pub fn respond(
 ) !response {
     _ = state;
 
-    var edits = std.ArrayList(lsputils.textEdit).init(allocator);
+    var edits = std.array_list.Managed(lsputils.textEdit).init(allocator);
     defer edits.deinit();
 
     try edits.append(.{
