@@ -80,6 +80,7 @@ pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
                 msg.content,
                 stdout,
             );
+            try stdout.flush();
 
             // do some stuff with buf so we get the leftovers
             // and remove what we used
