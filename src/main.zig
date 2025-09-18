@@ -50,9 +50,13 @@ pub fn main() !void {
 }
 
 pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
-    const stdin = std.io.getStdIn().reader();
-    var buf = std.ArrayList(u8).init(allocator);
+    const stdin = std.fs.File.stdin();
+    var buf = std.array_list.Managed(u8).init(allocator);
     defer buf.deinit();
+
+    var stdout_buf: [1024]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
+    const stdout = &stdout_writer.interface;
 
     const chunk_size = 1024;
     while (true) {
@@ -62,7 +66,6 @@ pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
 
         const n = try stdin.read(read_into);
         if (n == 0) break; // stdin closed
-
         try buf.resize(buf.items.len + n);
 
         while (true) {
@@ -75,8 +78,9 @@ pub fn run(allocator: std.mem.Allocator, logger: Logger) !void {
                 allocator,
                 logger,
                 msg.content,
-                std.io.getStdOut().writer(),
+                stdout,
             );
+            try stdout.flush();
 
             // do some stuff with buf so we get the leftovers
             // and remove what we used
@@ -95,7 +99,7 @@ pub fn handleMsg(
     allocator: std.mem.Allocator,
     logger: Logger,
     content: []const u8,
-    out: anytype,
+    out: *std.Io.Writer,
 ) !void {
     const decoded = try lsp.rpc.decode(lsp.rpc.PeekMsg, allocator, content);
     defer decoded.deinit();

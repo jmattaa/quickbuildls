@@ -1,14 +1,10 @@
 const std = @import("std");
 
-const State = @import("../../state.zig").State;
+const stateutils = @import("../../state.zig");
 const utils = @import("../../utils.zig");
 
 const quickbuildls = @cImport({
     @cInclude("quickbuildls.h");
-});
-
-const cstate_s = @cImport({
-    @cInclude("state.h");
 });
 // ain't an enum cuz they be annoying
 // TODO: checkout how zig works with enums or maybe eventually declare it in
@@ -46,22 +42,23 @@ pub const completionitem = struct {
     label: []const u8,
     kind: ?u8 = null,
     detail: ?[]const u8 = null,
-    documentation: ?struct {
-        kind: ?[]const u8 = null,
-        value: ?[]const u8 = null,
-    } = null,
-    insertTextFormat: ?u8 = null,
-    insertText: ?[]const u8 = null,
+    // documentation should be allowed to be null but neovim is complaining 😭
+    documentation: struct {
+        kind: []const u8,
+        value: []const u8,
+    },
+    insertTextFormat: u8,
+    insertText: []const u8,
 };
 
 pub fn getCompletions(
     allocator: std.mem.Allocator,
-    state: State,
+    state: stateutils.State,
     src: []const u8,
     l: u32,
     c: u32,
 ) ![]completionitem {
-    var items = std.ArrayList(completionitem).init(allocator);
+    var items = std.array_list.Managed(completionitem).init(allocator);
     defer items.deinit();
 
     if (state.cstate) |s| {
@@ -75,6 +72,15 @@ pub fn getCompletions(
                         try items.append(.{
                             .label = std.mem.span(v),
                             .kind = COMPLETION_Variable,
+                            .insertTextFormat = INSERTTEXTFORMAT_PlainText,
+                            .documentation = .{
+                               .kind = "plaintext", 
+                               .value = try allocator.dupe(u8, ""),
+                            },
+                            .insertText = try allocator.dupe(
+                                u8,
+                                std.mem.span(v),
+                            ),
                         });
                     }
 
@@ -110,8 +116,13 @@ pub fn getCompletions(
                             allocator,
                             src,
                             @intCast(t.offset),
-                        ),
+                        ) orelse "",
                     },
+                    .insertTextFormat = INSERTTEXTFORMAT_PlainText,
+                    .insertText = try allocator.dupe(
+                        u8,
+                        std.mem.span(if (t.quotedname) |q| q else t.name),
+                    ),
                 });
             }
             for (0..s.nfields) |i| {
@@ -125,8 +136,13 @@ pub fn getCompletions(
                             allocator,
                             src,
                             @intCast(f.offset),
-                        ),
+                        ) orelse "",
                     },
+                    .insertTextFormat = INSERTTEXTFORMAT_PlainText,
+                    .insertText = try allocator.dupe(
+                        u8,
+                        std.mem.span(if (f.quotedname) |q| q else f.name),
+                    ),
                 });
             }
         } else if (is_cursor_in_task(src, off)) {
@@ -136,6 +152,10 @@ pub fn getCompletions(
                         .label = std.mem.span(kw),
                         .kind = COMPLETION_Snippet,
                         .insertTextFormat = INSERTTEXTFORMAT_Snippet,
+                        .documentation = .{
+                            .kind = "plaintext",
+                            .value = try allocator.dupe(u8, ""),
+                        },
                         .insertText = try std.fmt.allocPrint(
                             allocator,
                             "{s} = $1;",
@@ -155,8 +175,8 @@ pub fn deinit(
     items: []completionitem,
 ) void {
     for (items) |i| {
-        if (i.documentation) |doc| if (doc.value) |v| allocator.free(v);
-        if (i.insertText) |v| allocator.free(v);
+        allocator.free(i.documentation.value);
+        allocator.free(i.insertText);
     }
 
     allocator.free(items);
@@ -164,7 +184,7 @@ pub fn deinit(
 
 fn get_field_completion(
     allocator: std.mem.Allocator,
-    f: cstate_s.qls_obj,
+    f: stateutils.cstate.qls_obj,
     src: []const u8,
 ) !?completionitem {
     if (utils.isKeyword(std.mem.span(f.name))) return null;
@@ -178,8 +198,10 @@ fn get_field_completion(
                 allocator,
                 src,
                 @intCast(f.offset),
-            ),
+            ) orelse "",
         },
+        .insertTextFormat = INSERTTEXTFORMAT_PlainText,
+        .insertText = try allocator.dupe(u8, std.mem.span(f.name)),
     };
 }
 
