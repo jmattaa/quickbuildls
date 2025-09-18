@@ -1,14 +1,10 @@
 const std = @import("std");
 
-const State = @import("../../state.zig").State;
+const stateutils = @import("../../state.zig");
 const utils = @import("../../utils.zig");
 
 const quickbuildls = @cImport({
     @cInclude("quickbuildls.h");
-});
-
-const cstate_s = @cImport({
-    @cInclude("state.h");
 });
 // ain't an enum cuz they be annoying
 // TODO: checkout how zig works with enums or maybe eventually declare it in
@@ -56,12 +52,12 @@ pub const completionitem = struct {
 
 pub fn getCompletions(
     allocator: std.mem.Allocator,
-    state: State,
+    state: stateutils.State,
     src: []const u8,
     l: u32,
     c: u32,
 ) ![]completionitem {
-    var items = std.ArrayList(completionitem).init(allocator);
+    var items = std.array_list.Managed(completionitem).init(allocator);
     defer items.deinit();
 
     if (state.cstate) |s| {
@@ -164,7 +160,7 @@ pub fn deinit(
 
 fn get_field_completion(
     allocator: std.mem.Allocator,
-    f: cstate_s.qls_obj,
+    f: stateutils.cstate.qls_obj,
     src: []const u8,
 ) !?completionitem {
     if (utils.isKeyword(std.mem.span(f.name))) return null;

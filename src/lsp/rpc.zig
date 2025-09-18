@@ -22,23 +22,25 @@ const headersep = "\r\n\r\n";
 /// the result of this function `MUST` be freed using the same allocator that
 /// was passed in
 pub fn encode(allocator: std.mem.Allocator, msg: anytype) ![]const u8 {
-    var buf = std.ArrayList(u8).init(allocator);
-    defer buf.deinit();
+    const fmt = std.json.fmt(msg, .{});
 
-    try std.json.stringify(msg, .{}, buf.writer());
+    var jsonWriter = std.Io.Writer.Allocating.init(allocator);
+    try fmt.format(&jsonWriter.writer);
 
-    const len_str = try std.fmt.allocPrint(allocator, "{}", .{buf.items.len});
+    const str = try jsonWriter.toOwnedSlice();
+
+    const len_str = try std.fmt.allocPrint(allocator, "{}", .{str.len});
     defer allocator.free(len_str);
 
     const res = try allocator.alloc(u8, contentlenheader.len + len_str.len +
-        headersep.len + buf.items.len);
+        headersep.len + str.len);
 
     var stream = std.io.fixedBufferStream(res);
     var writer = stream.writer();
     try writer.writeAll(contentlenheader);
     try writer.writeAll(len_str);
     try writer.writeAll(headersep);
-    try writer.writeAll(buf.items);
+    try writer.writeAll(str);
 
     return res;
 }

@@ -1,10 +1,7 @@
 const std = @import("std");
 
-const State = @import("state.zig").State;
+const stateutils = @import("state.zig");
 
-const cstate_s = @cImport({
-    @cInclude("state.h");
-});
 const quickbuildls = @cImport({
     @cInclude("quickbuildls.h");
 });
@@ -102,7 +99,7 @@ pub fn getDocCmt(
     src: []const u8,
     off: usize,
 ) !?[]const u8 {
-    var cmts = std.ArrayList([]const u8).init(allocator);
+    var cmts = std.array_list.Managed([]const u8).init(allocator);
     defer cmts.deinit();
 
     // go to the line above
@@ -139,9 +136,9 @@ pub fn getDocCmt(
 }
 
 pub fn getTaskByName(
-    s: *cstate_s.qls_state,
+    s: *stateutils.cstate.qls_state,
     name: []const u8,
-) ?cstate_s.qls_obj {
+) ?stateutils.cstate.qls_obj {
     for (0..s.ntasks) |i| {
         if (std.mem.eql(u8, std.mem.span(s.tasks[i].name), name)) {
             return s.tasks[i];

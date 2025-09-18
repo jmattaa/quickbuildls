@@ -99,7 +99,7 @@ pub fn respond(
     req: request,
     _: State,
 ) !response {
-    var results = std.ArrayList(actionResult).init(allocator);
+    var results = std.array_list.Managed(actionResult).init(allocator);
     defer results.deinit();
 
     for (req.params.context.diagnostics) |d| {

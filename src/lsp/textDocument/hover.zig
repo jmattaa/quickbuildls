@@ -1,9 +1,6 @@
 const std = @import("std");
 
-const State = @import("../../state.zig").State;
-const cstate_s = @cImport({
-    @cInclude("state.h");
-});
+const stateutil = @import("../../state.zig");
 
 const utils = @import("../../utils.zig");
 const lsputils = @import("../lsputils.zig");
@@ -42,7 +39,7 @@ pub const response = struct {
 pub fn respond(
     allocator: std.mem.Allocator,
     req: request,
-    state: State,
+    state: stateutil.State,
 ) !response {
     const document = state.document orelse return .{
         // we don have nothing to give
@@ -108,7 +105,7 @@ pub fn deinit(res: response, allocator: std.mem.Allocator) void {
 
 pub fn get_hover_md(
     allocator: std.mem.Allocator,
-    state: State,
+    state: stateutil.State,
     ident: []const u8,
     boffset: usize,
     src: []const u8,
@@ -146,7 +143,7 @@ pub fn get_hover_md(
                 );
                 defer if (doc) |d| allocator.free(d);
 
-                var res = std.ArrayList(u8).init(allocator);
+                var res = std.array_list.Managed(u8).init(allocator);
                 defer res.deinit();
 
                 if (doc) |d| {
@@ -174,7 +171,7 @@ pub fn get_hover_md(
 
 fn get_field_hover(
     allocator: std.mem.Allocator,
-    f: cstate_s.qls_obj,
+    f: stateutil.cstate.qls_obj,
     ident: []const u8,
     src: []const u8,
 ) !?[]const u8 {
@@ -194,7 +191,7 @@ fn get_field_hover(
     );
     defer if (doc) |d| allocator.free(d);
 
-    var res = std.ArrayList(u8).init(allocator);
+    var res = std.array_list.Managed(u8).init(allocator);
     defer res.deinit();
 
     if (doc) |d| {

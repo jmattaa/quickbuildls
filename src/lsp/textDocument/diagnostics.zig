@@ -38,7 +38,7 @@ pub fn trypush(
 ) !void {
     if (state.document == null) return;
     if (state.cstate) |cs| {
-        var d = std.ArrayList(diagnostic).init(allocator);
+        var d = std.array_list.Managed(diagnostic).init(allocator);
 
         if (cs.errs) |errs| {
             const errs_slice = errs[0..cs.nerrs];
