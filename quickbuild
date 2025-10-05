@@ -17,7 +17,7 @@ headers = "include/*.h";
 dev_exec = "servc";
 rel_exec = "build/rel/servc";
 
-"dev" { 
+"dev" {
     depends = "srcs", "headers", "build_devobjs";
     run = "[cc] [cflagsdev] -o [dev_exec] [devobjs]";
 }
@@ -32,7 +32,7 @@ devobjs as obj {
     run = "[cc] [cflagsdev] -c [obj_src] -o [obj]";
 }
 
-# utility tasks 
+# utility tasks
 
 # creates all the necessary directories
 "mkdirs" {
