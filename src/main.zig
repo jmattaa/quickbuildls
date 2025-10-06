@@ -189,5 +189,13 @@ pub fn handleMsg(
             State,
             out,
         );
+    } else if (std.mem.eql(u8, decoded.value.method, "textDocument/formatting")) {
+        try lsp.respond(
+            allocator,
+            lsp.textDocument.formatting,
+            content,
+            State,
+            out,
+        );
     }
 }

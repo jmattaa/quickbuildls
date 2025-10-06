@@ -23,25 +23,11 @@ pub const request = struct {
     },
 };
 
-pub const textEdit = struct {
-    range: lsputils.range,
-    newText: []const u8,
-
-    pub fn jsonStringify(self: textEdit, jw: anytype) !void {
-        try jw.beginObject();
-        try jw.objectField("range");
-        try jw.write(self.range);
-        try jw.objectField("newText");
-        try jw.write(self.newText);
-        try jw.endObject();
-    }
-};
-
 pub const actionResult = struct {
     title: []const u8,
     diagnostics: ?[]lspdiagnostics.diagnostic = null,
     edit: ?struct {
-        changes: ?std.StringHashMap([]textEdit) = null,
+        changes: ?std.StringHashMap([]lsputils.textEdit) = null,
     } = null,
 
     pub fn jsonStringify(self: actionResult, jw: anytype) !void {
@@ -145,8 +131,8 @@ fn getErrorAction(
 ) ?actionResult {
     switch (diagnostic.code) {
         c._ENoLinestop => {
-            var map = std.StringHashMap([]textEdit).init(allocator);
-            var edits = allocator.alloc(textEdit, 1) catch return null;
+            var map = std.StringHashMap([]lsputils.textEdit).init(allocator);
+            var edits = allocator.alloc(lsputils.textEdit, 1) catch return null;
             edits[0] = .{
                 .range = .{
                     .start = diagnostic.range.end,
@@ -169,8 +155,8 @@ fn getErrorAction(
             };
         },
         c._ENoTaskOpen => {
-            var map = std.StringHashMap([]textEdit).init(allocator);
-            var edits = allocator.alloc(textEdit, 1) catch return null;
+            var map = std.StringHashMap([]lsputils.textEdit).init(allocator);
+            var edits = allocator.alloc(lsputils.textEdit, 1) catch return null;
             edits[0] = .{
                 .range = .{
                     .start = diagnostic.range.end,
@@ -218,8 +204,8 @@ fn getErrorAction(
         //             };
         //         },
         c._ENoReplacementIdentifier => {
-            var map = std.StringHashMap([]textEdit).init(allocator);
-            var edits = allocator.alloc(textEdit, 1) catch return null;
+            var map = std.StringHashMap([]lsputils.textEdit).init(allocator);
+            var edits = allocator.alloc(lsputils.textEdit, 1) catch return null;
             edits[0] = .{
                 .range = .{
                     .start = diagnostic.range.start,
@@ -242,8 +228,8 @@ fn getErrorAction(
             };
         },
         c._ENoReplacementArrow => {
-            var map = std.StringHashMap([]textEdit).init(allocator);
-            var edits = allocator.alloc(textEdit, 1) catch return null;
+            var map = std.StringHashMap([]lsputils.textEdit).init(allocator);
+            var edits = allocator.alloc(lsputils.textEdit, 1) catch return null;
             edits[0] = .{
                 .range = .{
                     .start = diagnostic.range.end,

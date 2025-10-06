@@ -4,3 +4,4 @@ pub const definition = @import("definition.zig");
 pub const completion = @import("completion.zig");
 pub const diagnostics = @import("diagnostics.zig");
 pub const codeAction = @import("codeAction.zig");
+pub const formatting = @import("formatting.zig");

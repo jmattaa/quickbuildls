@@ -9,6 +9,7 @@ a simple language server for [quickbuild](https://github.com/nordtechtiger/quick
 - hover
 - diagnostics
 - goto definition
+- formatting
 
 
 simple neovim setup:
