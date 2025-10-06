@@ -77,14 +77,21 @@ fn formatFile(
             if (indent_level > 0) indent_level -= 1;
         }
 
-        if (!first) try out.appendSlice("\n");
+        if (!first) try out.append('\n');
         first = false;
 
         for (0..indent_level) |_| try out.appendSlice("    ");
-        try out.appendSlice(trimmed);
 
-        if (std.mem.endsWith(u8, trimmed, "{")) {
+        if (trimmed.len > 0 and trimmed[trimmed.len - 1] == '{') {
             indent_level += 1;
+            const before = if (trimmed.len > 1) trimmed[trimmed.len - 2] else 0;
+            try out.appendSlice(trimmed[0 .. trimmed.len - 1]);
+            if (before != ' ' and before != '\t' and trimmed.len > 1) {
+                try out.append(' ');
+            }
+            try out.append('{');
+        } else {
+            try out.appendSlice(trimmed);
         }
 
         len.* += 1;
